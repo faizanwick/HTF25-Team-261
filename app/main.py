@@ -55,7 +55,7 @@ templates = Jinja2Templates(directory="template")
 # -------------------------------
 # OpenRouter Configuration
 # -------------------------------
-OPENROUTER_API_KEY = "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"
+OPENROUTER_API_KEY = "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"
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 # -------------------------------
