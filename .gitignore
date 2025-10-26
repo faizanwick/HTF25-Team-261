@@ -1,0 +1,23 @@
+# Ignore virtual environment
+env/
+.env
+
+# Byte-compiled / cache files
+__pycache__/
+*.py[cod]
+
+# OS-specific
+.DS_Store
+Thumbs.db
+
+# VS Code / IDE folders
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# Python packaging stuff
+build/
+dist/
+*.egg-info/

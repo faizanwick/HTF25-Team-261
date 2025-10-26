@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <base target="_self">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authentication | CodeWhisper</title>
+    <meta name="description" content="Modern authentication page with login and signup forms">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            500: "#0ea5e9",
+                            600: "#0284c7"
+                        },
+                        secondary: {
+                            500: "#d946ef",
+                            600: "#c026d3"
+                        }
+                    },
+                    animation: {
+                        "float": "float 6s ease-in-out infinite",
+                        "gradient": "gradient 8s ease infinite"
+                    },
+                    keyframes: {
+                        float: {
+                            "0%, 100%": { transform: "translateY(0px)" },
+                            "50%": { transform: "translateY(-20px)" }
+                        },
+                        gradient: {
+                            "0%, 100%": { backgroundPosition: "0% 50%" },
+                            "50%": { backgroundPosition: "100% 50%" }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .gradient-bg {
+            background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+            background-size: 400% 400%;
+            animation: gradient 15s ease infinite;
+        }
+        .glass-effect {
+            backdrop-filter: blur(16px) saturate(180%);
+            background-color: rgba(255, 255, 255, 0.75);
+            border: 1px solid rgba(209, 213, 219, 0.3);
+        }
+        .btn-hover {
+            transition: all 0.3s ease;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .btn-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+        .tab-active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .tab-inactive {
+            background: rgba(255, 255, 255, 0.5);
+            color: #6b7280;
+        }
+        .form-hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body class="min-h-screen gradient-bg flex items-center justify-center p-4">
+    <div class="glass-effect rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+        <div class="p-8">
+            <!-- Header -->
+            <div class="text-center mb-8">
+                <div class="w-20 h-20 bg-gradient-to-r from-primary-500 to-secondary-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+                    <i class="fas fa-user-shield text-white text-2xl"></i>
+                </div>
+                <h1 class="text-3xl font-bold text-gray-800 mb-2">Welcome to CodeWhisper</h1>
+                <p class="text-gray-600">Sign in or create your account</p>
+            </div>
+
+            <!-- Tab Navigation -->
+            <div class="flex mb-6 bg-gray-100 rounded-lg p-1">
+                <button 
+                    id="loginTab" 
+                    class="flex-1 py-2 px-4 rounded-md font-medium transition-all duration-300 tab-active"
+                    onclick="switchTab('login')"
+                >
+                    <i class="fas fa-sign-in-alt mr-2"></i>
+                    Sign In
+                </button>
+                <button 
+                    id="signupTab" 
+                    class="flex-1 py-2 px-4 rounded-md font-medium transition-all duration-300 tab-inactive"
+                    onclick="switchTab('signup')"
+                >
+                    <i class="fas fa-user-plus mr-2"></i>
+                    Sign Up
+                </button>
+            </div>
+
+            <!-- Error Message (from FastAPI) -->
+            {% if error %}
+            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+                <span class="block sm:inline">{{ error }}</span>
+            </div>
+            {% endif %}
+
+            <!-- Login Form -->
+            <form id="loginForm" method="post" action="/login" class="space-y-6">
+                <!-- Email Input -->
+                <div>
+                    <label for="loginEmail" class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-envelope text-primary-500 mr-2"></i>
+                        Email Address
+                    </label>
+                    <input 
+                        type="email" 
+                        id="loginEmail" 
+                        name="email"
+                        required
+                        value="{{ email or '' }}"
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-300"
+                        placeholder="Enter your email"
+                    >
+                </div>
+
+                <!-- Password Input -->
+                <div>
+                    <label for="loginPassword" class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-lock text-primary-500 mr-2"></i>
+                        Password
+                    </label>
+                    <div class="relative">
+                        <input 
+                            type="password" 
+                            id="loginPassword" 
+                            name="password"
+                            required
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-300"
+                            placeholder="Enter your password"
+                        >
+                        <button 
+                            type="button" 
+                            id="toggleLoginPassword"
+                            class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-primary-500 transition-colors"
+                        >
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <button 
+                    type="submit"
+                    class="w-full btn-hover text-white py-3 px-4 rounded-lg font-semibold shadow-lg"
+                >
+                    <i class="fas fa-sign-in-alt mr-2"></i>
+                    Sign In
+                </button>
+            </form>
+
+            <!-- Signup Form -->
+            <form id="signupForm" method="post" action="/signup" class="space-y-6 form-hidden">
+                <!-- Username Input -->
+                <div>
+                    <label for="signupUsername" class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-user text-primary-500 mr-2"></i>
+                        Username
+                    </label>
+                    <input 
+                        type="text" 
+                        id="signupUsername" 
+                        name="username"
+                        required
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-300"
+                        placeholder="Enter your username"
+                    >
+                </div>
+
+                <!-- Email Input -->
+                <div>
+                    <label for="signupEmail" class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-envelope text-primary-500 mr-2"></i>
+                        Email Address
+                    </label>
+                    <input 
+                        type="email" 
+                        id="signupEmail" 
+                        name="email"
+                        required
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-300"
+                        placeholder="Enter your email"
+                    >
+                </div>
+
+                <!-- Password Input -->
+                <div>
+                    <label for="signupPassword" class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-lock text-primary-500 mr-2"></i>
+                        Password
+                    </label>
+                    <div class="relative">
+                        <input 
+                            type="password" 
+                            id="signupPassword" 
+                            name="password"
+                            required
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-300"
+                            placeholder="Enter your password"
+                        >
+                        <button 
+                            type="button" 
+                            id="toggleSignupPassword"
+                            class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-primary-500 transition-colors"
+                        >
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <button 
+                    type="submit"
+                    class="w-full btn-hover text-white py-3 px-4 rounded-lg font-semibold shadow-lg"
+                >
+                    <i class="fas fa-user-plus mr-2"></i>
+                    Create Account
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Tab switching functionality
+        function switchTab(tab) {
+            const loginTab = document.getElementById('loginTab');
+            const signupTab = document.getElementById('signupTab');
+            const loginForm = document.getElementById('loginForm');
+            const signupForm = document.getElementById('signupForm');
+
+            if (tab === 'login') {
+                // Switch to login
+                loginTab.classList.remove('tab-inactive');
+                loginTab.classList.add('tab-active');
+                signupTab.classList.remove('tab-active');
+                signupTab.classList.add('tab-inactive');
+                
+                loginForm.classList.remove('form-hidden');
+                signupForm.classList.add('form-hidden');
+            } else {
+                // Switch to signup
+                signupTab.classList.remove('tab-inactive');
+                signupTab.classList.add('tab-active');
+                loginTab.classList.remove('tab-active');
+                loginTab.classList.add('tab-inactive');
+                
+                signupForm.classList.remove('form-hidden');
+                loginForm.classList.add('form-hidden');
+            }
+        }
+
+        // Password visibility toggle for login
+        document.getElementById("toggleLoginPassword").addEventListener("click", function() {
+            const passwordInput = document.getElementById("loginPassword");
+            const icon = this.querySelector("i");
+            if (passwordInput.type === "password") {
+                passwordInput.type = "text";
+                icon.classList.replace("fa-eye", "fa-eye-slash");
+            } else {
+                passwordInput.type = "password";
+                icon.classList.replace("fa-eye-slash", "fa-eye");
+            }
+        });
+
+        // Password visibility toggle for signup
+        document.getElementById("toggleSignupPassword").addEventListener("click", function() {
+            const passwordInput = document.getElementById("signupPassword");
+            const icon = this.querySelector("i");
+            if (passwordInput.type === "password") {
+                passwordInput.type = "text";
+                icon.classList.replace("fa-eye", "fa-eye-slash");
+            } else {
+                passwordInput.type = "password";
+                icon.classList.replace("fa-eye-slash", "fa-eye");
+            }
+        });
+
+        // Check URL parameters to determine which tab to show
+        const urlParams = new URLSearchParams(window.location.search);
+        const action = urlParams.get('action');
+        if (action === 'signup') {
+            switchTab('signup');
+        } else {
+            switchTab('login');
+        }
+    </script>
+</body>
+</html>

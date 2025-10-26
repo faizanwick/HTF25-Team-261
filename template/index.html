@@ -1,0 +1,2087 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CodeWhisper - Voice-Enabled Code Assistant</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            box-sizing: border-box;
+            background: #0a0a0f;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+        
+        .gradient-bg {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .gradient-bg::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, #3b82f6 0%, #06b6d4 50%, #8b5cf6 100%);
+            opacity: 0.1;
+            z-index: 0;
+        }
+        
+        .gradient-bg > * {
+            position: relative;
+            z-index: 1;
+        }
+        
+        .neon-gradient {
+            background: linear-gradient(135deg, #3b82f6 0%, #06b6d4 50%, #8b5cf6 100%);
+        }
+        
+        .glassmorphism {
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        
+        .glow-border {
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.1), inset 0 0 20px rgba(59, 130, 246, 0.05);
+        }
+        
+        .glow-text {
+            text-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+        }
+        
+        .code-editor {
+            font-family: 'JetBrains Mono', 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            background: rgba(10, 10, 15, 0.9);
+            color: #e2e8f0;
+            backdrop-filter: blur(10px);
+        }
+        
+        .syntax-keyword { color: #60a5fa; text-shadow: 0 0 5px rgba(96, 165, 250, 0.3); }
+        .syntax-string { color: #34d399; text-shadow: 0 0 5px rgba(52, 211, 153, 0.3); }
+        .syntax-comment { color: #64748b; }
+        .syntax-function { color: #fbbf24; text-shadow: 0 0 5px rgba(251, 191, 36, 0.3); }
+        
+        .pulse-animation {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .voice-wave {
+            width: 4px;
+            height: 20px;
+            background: linear-gradient(to top, #3b82f6, #06b6d4);
+            margin: 0 2px;
+            border-radius: 2px;
+            animation: wave 1s infinite ease-in-out;
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+        }
+        
+        .voice-wave:nth-child(2) { animation-delay: 0.1s; }
+        .voice-wave:nth-child(3) { animation-delay: 0.2s; }
+        .voice-wave:nth-child(4) { animation-delay: 0.3s; }
+        .voice-wave:nth-child(5) { animation-delay: 0.4s; }
+        
+        @keyframes wave {
+            0%, 40%, 100% { transform: scaleY(0.4); }
+            20% { transform: scaleY(1); }
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%);
+            border: none;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
+        }
+        
+        .btn-secondary {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+        
+        .btn-secondary:hover {
+            background: rgba(59, 130, 246, 0.2);
+            border-color: rgba(59, 130, 246, 0.5);
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.2);
+        }
+        
+        .floating-element {
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        .slide-in {
+            animation: slideIn 0.5s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(-100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.3s ease-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .neon-border {
+            border: 1px solid transparent;
+            background: linear-gradient(rgba(15, 23, 42, 0.8), rgba(15, 23, 42, 0.8)) padding-box,
+                        linear-gradient(135deg, #3b82f6, #06b6d4, #8b5cf6) border-box;
+        }
+        
+        .hover-glow:hover {
+            box-shadow: 0 0 30px rgba(59, 130, 246, 0.3);
+            transform: translateY(-1px);
+            transition: all 0.3s ease;
+        }
+        
+        .text-glow {
+            background: linear-gradient(135deg, #3b82f6 0%, #06b6d4 50%, #8b5cf6 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .panel-glass {
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(20px);
+            border-right: 1px solid rgba(59, 130, 246, 0.1);
+        }
+        
+        .chat-bubble {
+            background: rgba(59, 130, 246, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .chat-bubble:hover {
+            background: rgba(59, 130, 246, 0.15);
+            border-color: rgba(59, 130, 246, 0.3);
+        }
+        
+        .modal-glass {
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(25px);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+        }
+        
+        .input-glass {
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .input-glass:focus {
+            border-color: rgba(59, 130, 246, 0.5);
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.2);
+            outline: none;
+        }
+        
+        .scrollbar-custom::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .scrollbar-custom::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.3);
+        }
+        
+        .scrollbar-custom::-webkit-scrollbar-thumb {
+            background: rgba(59, 130, 246, 0.5);
+            border-radius: 3px;
+        }
+        
+        .scrollbar-custom::-webkit-scrollbar-thumb:hover {
+            background: rgba(59, 130, 246, 0.7);
+        }
+
+        /* Animated Background */
+        .animated-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            overflow: hidden;
+        }
+
+        .floating-shapes {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+        }
+
+        .shape {
+            position: absolute;
+            border-radius: 50%;
+            background: linear-gradient(45deg, rgba(59, 130, 246, 0.1), rgba(6, 182, 212, 0.1));
+            animation: float-shapes 20s infinite linear;
+        }
+
+        .shape:nth-child(1) {
+            width: 80px;
+            height: 80px;
+            top: 20%;
+            left: 10%;
+            animation-delay: 0s;
+        }
+
+        .shape:nth-child(2) {
+            width: 120px;
+            height: 120px;
+            top: 60%;
+            left: 80%;
+            animation-delay: -5s;
+        }
+
+        .shape:nth-child(3) {
+            width: 60px;
+            height: 60px;
+            top: 80%;
+            left: 20%;
+            animation-delay: -10s;
+        }
+
+        .shape:nth-child(4) {
+            width: 100px;
+            height: 100px;
+            top: 10%;
+            left: 70%;
+            animation-delay: -15s;
+        }
+
+        .shape:nth-child(5) {
+            width: 90px;
+            height: 90px;
+            top: 40%;
+            left: 50%;
+            animation-delay: -8s;
+        }
+
+        @keyframes float-shapes {
+            0% {
+                transform: translateY(100vh) rotate(0deg);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-100px) rotate(360deg);
+                opacity: 0;
+            }
+        }
+
+        /* Fix dashboard height */
+        .ide-container {
+            height: calc(100vh - 60px);
+            overflow: hidden;
+        }
+
+        .main-ide-layout {
+            height: calc(100vh - 120px);
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white">
+    <!-- Animated Background -->
+    <div class="animated-bg">
+        <div class="floating-shapes">
+            <div class="shape"></div>
+            <div class="shape"></div>
+            <div class="shape"></div>
+            <div class="shape"></div>
+            <div class="shape"></div>
+        </div>
+    </div>
+    
+    <!-- Landing Page -->
+    <div id="landingPage" class="min-h-full">
+        <!-- Header -->
+        <header class="gradient-bg py-6">
+            <div class="container mx-auto px-6">
+                <nav class="flex justify-between items-center">
+                    <div class="flex items-center space-x-3 floating-element">
+                        <div class="w-10 h-10 neon-gradient rounded-xl flex items-center justify-center glow-border">
+                            <span class="text-white font-bold text-lg glow-text">CW</span>
+                        </div>
+                        <h1 class="text-3xl font-bold text-glow">CodeWhisper</h1>
+                    </div>
+                    <button onclick="showIDE()" class="btn-primary px-8 py-3 rounded-xl font-semibold text-white hover-glow">
+                        Launch IDE ✨
+                    </button>
+                </nav>
+            </div>
+        </header>
+
+        <!-- Hero Section -->
+        <section class="gradient-bg py-24">
+            <div class="container mx-auto px-6 text-center">
+                <h2 class="text-6xl font-bold mb-8 text-glow floating-element">Code with Your Voice</h2>
+                <p class="text-xl mb-12 max-w-4xl mx-auto text-slate-300 leading-relaxed">
+                    The revolutionary Voice-Enabled Code Assistant that lets you write, edit, and debug code using natural language voice commands. Make coding faster, more accessible, and hands-free with AI-powered assistance.
+                </p>
+                <div class="flex justify-center space-x-6">
+                    <button onclick="showIDE()" class="btn-primary px-10 py-4 rounded-xl font-semibold text-white text-lg hover-glow">
+                        🚀 Start Coding
+                    </button>
+                    <button class="btn-secondary px-10 py-4 rounded-xl font-semibold text-white text-lg hover-glow">
+                        🎥 Watch Demo
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Features Section -->
+        <section class="py-24 relative">
+            <div class="container mx-auto px-6">
+                <h3 class="text-4xl font-bold text-center mb-16 text-glow">Powerful Features</h3>
+                <div class="grid md:grid-cols-3 gap-8">
+                    <div class="glassmorphism text-center p-8 rounded-2xl hover-glow fade-in">
+                        <div class="w-20 h-20 neon-gradient rounded-2xl flex items-center justify-center mx-auto mb-6 glow-border floating-element">
+                            <span class="text-3xl">🎤</span>
+                        </div>
+                        <h4 class="text-2xl font-semibold mb-4 text-glow">Voice Commands</h4>
+                        <p class="text-slate-300 leading-relaxed">Natural language voice commands for all coding actions with intelligent context understanding</p>
+                    </div>
+                    <div class="glassmorphism text-center p-8 rounded-2xl hover-glow fade-in" style="animation-delay: 0.2s;">
+                        <div class="w-20 h-20 neon-gradient rounded-2xl flex items-center justify-center mx-auto mb-6 glow-border floating-element" style="animation-delay: 2s;">
+                            <span class="text-3xl">⚡</span>
+                        </div>
+                        <h4 class="text-2xl font-semibold mb-4 text-glow">Real-time Editing</h4>
+                        <p class="text-slate-300 leading-relaxed">Instant code generation and modification as you speak with live syntax highlighting</p>
+                    </div>
+                    <div class="glassmorphism text-center p-8 rounded-2xl hover-glow fade-in" style="animation-delay: 0.4s;">
+                        <div class="w-20 h-20 neon-gradient rounded-2xl flex items-center justify-center mx-auto mb-6 glow-border floating-element" style="animation-delay: 4s;">
+                            <span class="text-3xl">🔧</span>
+                        </div>
+                        <h4 class="text-2xl font-semibold mb-4 text-glow">Smart Debugging</h4>
+                        <p class="text-slate-300 leading-relaxed">AI-powered error detection and fix suggestions with voice-guided solutions</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- IDE Interface -->
+    <div id="ideInterface" class="hidden min-h-full">
+        <!-- Top Bar -->
+        <div class="glassmorphism border-b border-blue-500/20 px-6 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-6">
+                <!-- Hamburger Menu -->
+                <button onclick="toggleHamburgerMenu()" class="text-slate-400 hover:text-blue-400 p-2 rounded-lg hover-glow transition-all">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                    </svg>
+                </button>
+                <button onclick="showLanding()" class="text-slate-400 hover:text-blue-400 transition-all hover-glow px-3 py-1 rounded-lg">
+                    ← Back to Home
+                </button>
+                <h1 class="text-xl font-semibold text-glow">CodeWhisper IDE</h1>
+            </div>
+            <div class="flex items-center space-x-3">
+                <span class="text-sm text-slate-400">Ready</span>
+                <div class="w-3 h-3 neon-gradient rounded-full glow-border pulse-animation"></div>
+            </div>
+        </div>
+
+        <!-- Hamburger Menu Overlay -->
+        <div id="hamburgerMenu" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 fade-in">
+            <div class="modal-glass w-96 h-full shadow-2xl slide-in">
+                <div class="p-6 border-b border-blue-500/20 flex justify-between items-center">
+                    <h2 class="text-xl font-semibold text-glow">VoiceCode Features</h2>
+                    <button onclick="toggleHamburgerMenu()" class="text-slate-400 hover:text-blue-400 p-2 rounded-lg hover-glow transition-all">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+                
+                <div class="p-6 space-y-6 scrollbar-custom overflow-y-auto h-full">
+                    <!-- Code Explanation -->
+                    <div class="glassmorphism rounded-xl p-5 hover-glow">
+                        <div class="flex items-center space-x-3 mb-3">
+                            <div class="w-10 h-10 neon-gradient rounded-lg flex items-center justify-center">
+                                <span class="text-xl">🔍</span>
+                            </div>
+                            <h3 class="font-semibold text-lg text-glow">Code Explanation</h3>
+                        </div>
+                        <p class="text-sm text-slate-300 mb-4 leading-relaxed">Get AI-powered voice explanations of your selected code</p>
+                        <button onclick="explainCode()" class="w-full btn-primary px-4 py-3 rounded-lg text-sm font-medium">
+                            🎤 Explain Selected Code
+                        </button>
+                    </div>
+
+                    <!-- Custom Voice Commands -->
+                    <div class="glassmorphism rounded-xl p-5 hover-glow">
+                        <div class="flex items-center space-x-3 mb-3">
+                            <div class="w-10 h-10 neon-gradient rounded-lg flex items-center justify-center">
+                                <span class="text-xl">⚡</span>
+                            </div>
+                            <h3 class="font-semibold text-lg text-glow">Voice Shortcuts</h3>
+                        </div>
+                        <p class="text-sm text-slate-300 mb-4 leading-relaxed">Create and manage custom voice commands</p>
+                        <button onclick="openVoiceShortcuts()" class="w-full btn-primary px-4 py-3 rounded-lg text-sm font-medium" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+                            ⚙️ Manage Shortcuts
+                        </button>
+                    </div>
+
+                    <!-- Auto Debugger -->
+                    <div class="glassmorphism rounded-xl p-5 hover-glow">
+                        <div class="flex items-center space-x-3 mb-3">
+                            <div class="w-10 h-10 neon-gradient rounded-lg flex items-center justify-center">
+                                <span class="text-xl">🐛</span>
+                            </div>
+                            <h3 class="font-semibold text-lg text-glow">Auto Debugger</h3>
+                        </div>
+                        <p class="text-sm text-slate-300 mb-4 leading-relaxed">Automatically detect and fix common code issues</p>
+                        <button onclick="startAutoDebug()" class="w-full btn-primary px-4 py-3 rounded-lg text-sm font-medium" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);">
+                            🔧 Start Auto Debug
+                        </button>
+                    </div>
+
+                    <!-- Voice Search -->
+                    <div class="glassmorphism rounded-xl p-5 hover-glow">
+                        <div class="flex items-center space-x-3 mb-3">
+                            <div class="w-10 h-10 neon-gradient rounded-lg flex items-center justify-center">
+                                <span class="text-xl">🔎</span>
+                            </div>
+                            <h3 class="font-semibold text-lg text-glow">Voice Search</h3>
+                        </div>
+                        <p class="text-sm text-slate-300 mb-4 leading-relaxed">Search through your codebase using voice commands</p>
+                        <button onclick="startVoiceSearch()" class="w-full btn-primary px-4 py-3 rounded-lg text-sm font-medium" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);">
+                            🎤 Start Voice Search
+                        </button>
+                    </div>
+
+                    <!-- Code Analytics -->
+                    <div class="glassmorphism rounded-xl p-5 hover-glow">
+                        <div class="flex items-center space-x-3 mb-3">
+                            <div class="w-10 h-10 neon-gradient rounded-lg flex items-center justify-center">
+                                <span class="text-xl">📊</span>
+                            </div>
+                            <h3 class="font-semibold text-lg text-glow">Analytics Dashboard</h3>
+                        </div>
+                        <p class="text-sm text-slate-300 mb-4 leading-relaxed">View detailed coding statistics and insights</p>
+                        <button onclick="openAnalytics()" class="w-full btn-primary px-4 py-3 rounded-lg text-sm font-medium" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">
+                            📈 View Dashboard
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main IDE Layout -->
+        <div class="flex main-ide-layout">
+            <!-- Left Panel - File Explorer -->
+            <div class="w-72 panel-glass p-6">
+                <h3 class="text-sm font-semibold mb-4 text-glow tracking-wider">EXPLORER</h3>
+                <div class="space-y-2">
+                    <div class="flex items-center space-x-3 p-3 hover:bg-blue-500/10 rounded-lg cursor-pointer hover-glow transition-all" onclick="openFile('main.py')">
+                        <div class="w-8 h-8 neon-gradient rounded-lg flex items-center justify-center">
+                            <span class="text-sm">🐍</span>
+                        </div>
+                        <span class="text-sm text-slate-300">main.py</span>
+                    </div>
+                    <div class="flex items-center space-x-3 p-3 hover:bg-blue-500/10 rounded-lg cursor-pointer hover-glow transition-all" onclick="openFile('utils.js')">
+                        <div class="w-8 h-8 neon-gradient rounded-lg flex items-center justify-center">
+                            <span class="text-sm">⚡</span>
+                        </div>
+                        <span class="text-sm text-slate-300">utils.js</span>
+                    </div>
+                    <div class="flex items-center space-x-3 p-3 hover:bg-blue-500/10 rounded-lg cursor-pointer hover-glow transition-all" onclick="openFile('styles.css')">
+                        <div class="w-8 h-8 neon-gradient rounded-lg flex items-center justify-center">
+                            <span class="text-sm">🎨</span>
+                        </div>
+                        <span class="text-sm text-slate-300">styles.css</span>
+                    </div>
+                    <div class="flex items-center space-x-3 p-3 hover:bg-blue-500/10 rounded-lg cursor-pointer hover-glow transition-all" onclick="openFile('README.md')">
+                        <div class="w-8 h-8 neon-gradient rounded-lg flex items-center justify-center">
+                            <span class="text-sm">📝</span>
+                        </div>
+                        <span class="text-sm text-slate-300">README.md</span>
+                    </div>
+                </div>
+                <button onclick="createNewFile()" class="mt-6 w-full btn-primary px-4 py-3 rounded-lg text-sm font-medium hover-glow">
+                    ✨ New File
+                </button>
+            </div>
+
+            <!-- Middle Panel - Code Editor -->
+            <div class="flex-1 flex flex-col">
+                <!-- Tab Bar -->
+                <div class="glassmorphism border-b border-blue-500/20 flex justify-between items-center">
+                    <div class="flex">
+                        <div id="activeTab" class="bg-blue-500/10 px-6 py-3 border-r border-blue-500/20 flex items-center space-x-3 glow-border">
+                            <span class="text-sm text-slate-300 font-medium">main.py</span>
+                            <button class="text-slate-400 hover:text-red-400 text-sm hover-glow transition-all">×</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Language Selector -->
+                    <div class="px-6">
+                        <select id="languageSelector" onchange="changeLanguage()" class="input-glass rounded-lg px-4 py-2 text-sm text-slate-300 font-medium">
+                            <option value="python">🐍 Python</option>
+                            <option value="javascript">⚡ JavaScript</option>
+                            <option value="java">☕ Java</option>
+                            <option value="cpp">⚙️ C++</option>
+                            <option value="csharp">🔷 C#</option>
+                            <option value="go">🚀 Go</option>
+                            <option value="rust">🦀 Rust</option>
+                            <option value="php">🐘 PHP</option>
+                            <option value="ruby">💎 Ruby</option>
+                            <option value="typescript">📘 TypeScript</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- Code Editor Area -->
+                <div class="flex-1 code-editor p-4 overflow-auto">
+                    <div class="flex text-sm">
+                        <div class="text-gray-500 pr-4 select-none">
+                            <div>1</div>
+                            <div>2</div>
+                            <div>3</div>
+                            <div>4</div>
+                            <div>5</div>
+                            <div>6</div>
+                            <div>7</div>
+                            <div>8</div>
+                            <div>9</div>
+                            <div>10</div>
+                        </div>
+                        <div class="flex-1">
+                            <textarea 
+                                id="codeContent" 
+                                class="w-full h-full bg-transparent text-slate-300 font-mono text-sm resize-none border-none outline-none"
+                                style="min-height: 400px; font-family: 'JetBrains Mono', 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;"
+                       placeholder="Start coding here... Use voice commands or type directly."
+                       oninput="updateLineNumbers()"
+                       onkeydown="handleEditorKeydown(event)"
+                   ># CodeWhisper - Voice-Enabled Code Assistant
+import speech_recognition as sr
+import pyttsx3
+
+def listen_for_command():
+    """Listen for voice commands"""
+    recognizer = sr.Recognizer()
+    with sr.Microphone() as source:
+        audio = recognizer.listen(source)
+    return recognizer.recognize_google(audio)
+
+def process_voice_command(command):
+    """Process voice commands and execute them"""
+    if "create function" in command.lower():
+        return "def new_function():\n    pass"
+    elif "add loop" in command.lower():
+        return "for i in range(10):\n    print(i)"
+    elif "print" in command.lower():
+        return 'print("Hello, World!")'
+    else:
+        return "Command not recognized"
+
+# Example variables
+user_name = "Developer"
+project_count = 5
+is_active = True
+
+# Example loops
+for i in range(5):
+    print(f"Loop iteration: {i}")
+
+while is_active:
+    print("Processing...")
+    is_active = False
+
+# Example conditions
+if user_name == "Developer":
+    print("Welcome back!")
+elif project_count > 3:
+    print("You have many projects!")
+else:
+    print("Keep coding!")
+
+# Example class
+class VoiceAssistant:
+    def __init__(self):
+        self.name = "CodeWhisper"
+    
+    def speak(self, text):
+        print(f"{self.name}: {text}")
+
+# Create instance
+assistant = VoiceAssistant()
+assistant.speak("Ready to help you code!")</textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel -->
+            <div class="w-96 panel-glass border-l border-blue-500/20 flex flex-col">
+                <!-- Voice Commands Section -->
+                <div class="p-6 border-b border-blue-500/20">
+                    <h3 class="text-sm font-semibold mb-4 text-glow tracking-wider">VOICE COMMANDS</h3>
+                    
+                    <!-- Voice Status -->
+                    <div class="mb-6 glassmorphism p-4 rounded-xl">
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="text-sm text-slate-300 font-medium">Voice Recognition</span>
+                            <button id="voiceToggle" onclick="toggleVoice()" class="btn-primary px-4 py-2 rounded-lg text-xs font-medium hover-glow">
+                                🎤 ON
+                            </button>
+                        </div>
+                        <div id="voiceIndicator" class="hidden flex items-center justify-center space-x-1 mt-3">
+                            <div class="voice-wave"></div>
+                            <div class="voice-wave"></div>
+                            <div class="voice-wave"></div>
+                            <div class="voice-wave"></div>
+                            <div class="voice-wave"></div>
+                        </div>
+                        <div id="speechStatus" class="text-xs text-slate-400 mt-2 text-center">
+                            Click microphone to start speaking
+                        </div>
+                        <div id="lastCommand" class="text-xs text-slate-400 mt-3 p-2 bg-blue-500/10 rounded-lg">
+                            Last: "Create a function called hello"
+                        </div>
+                    </div>
+
+                    <!-- Quick Commands -->
+                    <div class="space-y-3">
+                        <h4 class="text-xs font-semibold text-glow tracking-wider">QUICK COMMANDS</h4>
+                        <div class="space-y-2 text-xs">
+                            <div class="chat-bubble p-3 rounded-lg cursor-pointer hover-glow" onclick="executeCommand('create function')">
+                                "Create a function"
+                            </div>
+                            <div class="chat-bubble p-3 rounded-lg cursor-pointer hover-glow" onclick="executeCommand('add loop')">
+                                "Add a for loop"
+                            </div>
+                            <div class="chat-bubble p-3 rounded-lg cursor-pointer hover-glow" onclick="executeCommand('fix syntax')">
+                                "Fix syntax errors"
+                            </div>
+                            <div class="chat-bubble p-3 rounded-lg cursor-pointer hover-glow" onclick="executeCommand('add comments')">
+                                "Add comments"
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Chatbot Section -->
+                <div class="flex-1 flex flex-col p-6">
+                    <h3 class="text-sm font-semibold mb-4 text-glow tracking-wider">AI ASSISTANT</h3>
+                    
+                    <!-- Chat Messages -->
+                    <div id="chatMessages" class="flex-1 overflow-y-auto space-y-4 mb-6 scrollbar-custom">
+                        <div class="chat-bubble p-4 rounded-xl text-sm">
+                            <strong class="text-blue-400">CodeWhisper:</strong> <span class="text-slate-300">Hello! I'm ready to help you code with voice commands. Try saying "create a function" or ask me any coding questions!</span>
+                        </div>
+                        <div class="glassmorphism p-4 rounded-xl text-sm">
+                            <strong class="text-green-400">You:</strong> <span class="text-slate-300">How do I create a loop in Python?</span>
+                        </div>
+                        <div class="chat-bubble p-4 rounded-xl text-sm">
+                            <strong class="text-blue-400">CodeWhisper:</strong> <span class="text-slate-300">You can create a for loop like this: <code class="bg-blue-500/20 px-2 py-1 rounded text-blue-300">for i in range(10):</code>. Would you like me to add one to your code?</span>
+                        </div>
+                    </div>
+
+                    <!-- Chat Input -->
+                    <div class="flex space-x-3">
+                        <input 
+                            id="chatInput" 
+                            type="text" 
+                            placeholder="Ask me anything..." 
+                            class="flex-1 input-glass rounded-lg px-4 py-3 text-sm text-slate-300 placeholder-slate-500"
+                            onkeypress="handleChatKeypress(event)"
+                        >
+                        <button onclick="sendChatMessage()" class="btn-primary px-6 py-3 rounded-lg text-sm font-medium hover-glow">
+                            Send
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Voice Shortcuts Modal -->
+        <div id="voiceShortcutsModal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center fade-in">
+            <div class="modal-glass rounded-2xl w-[500px] max-h-[600px] overflow-y-auto scrollbar-custom">
+                <div class="p-6 border-b border-blue-500/20 flex justify-between items-center">
+                    <h3 class="text-xl font-semibold text-glow">Custom Voice Shortcuts</h3>
+                    <button onclick="closeVoiceShortcuts()" class="text-slate-400 hover:text-blue-400 p-2 rounded-lg hover-glow transition-all">×</button>
+                </div>
+                <div class="p-6">
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium mb-3 text-glow">Voice Command</label>
+                        <input id="shortcutCommand" type="text" placeholder="e.g., 'create react component'" class="w-full input-glass rounded-lg px-4 py-3 text-sm text-slate-300 placeholder-slate-500">
+                    </div>
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium mb-3 text-glow">Code Template</label>
+                        <textarea id="shortcutTemplate" placeholder="Enter code template..." class="w-full input-glass rounded-lg px-4 py-3 text-sm h-24 text-slate-300 placeholder-slate-500"></textarea>
+                    </div>
+                    <button onclick="saveShortcut()" class="w-full btn-primary px-6 py-3 rounded-lg text-sm font-medium hover-glow">✨ Save Shortcut</button>
+                    
+                    <div class="mt-6">
+                        <h4 class="text-sm font-semibold mb-4 text-glow">Existing Shortcuts</h4>
+                        <div id="shortcutsList" class="space-y-3 text-sm">
+                            <div class="glassmorphism p-4 rounded-lg flex justify-between items-center hover-glow">
+                                <span class="text-slate-300">"create function" → def function_name():</span>
+                                <button class="text-red-400 hover:text-red-300 px-3 py-1 rounded-lg hover-glow transition-all">Delete</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Analytics Dashboard Modal -->
+        <div id="analyticsModal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center fade-in">
+            <div class="modal-glass rounded-2xl w-4/5 max-w-5xl h-4/5 overflow-y-auto scrollbar-custom">
+                <div class="p-6 border-b border-blue-500/20 flex justify-between items-center">
+                    <h3 class="text-2xl font-semibold text-glow">Code Analytics Dashboard</h3>
+                    <button onclick="closeAnalytics()" class="text-slate-400 hover:text-blue-400 p-2 rounded-lg hover-glow transition-all">×</button>
+                </div>
+                <div class="p-8">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+                        <div class="glassmorphism p-6 rounded-2xl hover-glow">
+                            <h4 class="text-sm font-semibold text-glow mb-2">Lines of Code</h4>
+                            <p class="text-3xl font-bold text-blue-400 mb-1">1,247</p>
+                            <p class="text-xs text-green-400">+23% this week</p>
+                        </div>
+                        <div class="glassmorphism p-6 rounded-2xl hover-glow">
+                            <h4 class="text-sm font-semibold text-glow mb-2">Voice Commands Used</h4>
+                            <p class="text-3xl font-bold text-green-400 mb-1">89</p>
+                            <p class="text-xs text-green-400">+15% this week</p>
+                        </div>
+                        <div class="glassmorphism p-6 rounded-2xl hover-glow">
+                            <h4 class="text-sm font-semibold text-glow mb-2">Coding Time</h4>
+                            <p class="text-3xl font-bold text-purple-400 mb-1">12.5h</p>
+                            <p class="text-xs text-slate-400">This week</p>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div class="glassmorphism p-6 rounded-2xl hover-glow">
+                            <h4 class="text-lg font-semibold mb-4 text-glow">Most Used Commands</h4>
+                            <div class="space-y-3 text-sm">
+                                <div class="flex justify-between items-center p-3 bg-blue-500/10 rounded-lg">
+                                    <span class="text-slate-300">Create function</span>
+                                    <span class="text-blue-400 font-bold">24</span>
+                                </div>
+                                <div class="flex justify-between items-center p-3 bg-blue-500/10 rounded-lg">
+                                    <span class="text-slate-300">Add loop</span>
+                                    <span class="text-blue-400 font-bold">18</span>
+                                </div>
+                                <div class="flex justify-between items-center p-3 bg-blue-500/10 rounded-lg">
+                                    <span class="text-slate-300">Fix syntax</span>
+                                    <span class="text-blue-400 font-bold">12</span>
+                                </div>
+                                <div class="flex justify-between items-center p-3 bg-blue-500/10 rounded-lg">
+                                    <span class="text-slate-300">Add comments</span>
+                                    <span class="text-blue-400 font-bold">8</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="glassmorphism p-6 rounded-2xl hover-glow">
+                            <h4 class="text-lg font-semibold mb-4 text-glow">Language Usage</h4>
+                            <div class="space-y-3 text-sm">
+                                <div class="flex justify-between items-center p-3 bg-green-500/10 rounded-lg">
+                                    <span class="text-slate-300">🐍 Python</span>
+                                    <span class="text-green-400 font-bold">45%</span>
+                                </div>
+                                <div class="flex justify-between items-center p-3 bg-green-500/10 rounded-lg">
+                                    <span class="text-slate-300">⚡ JavaScript</span>
+                                    <span class="text-green-400 font-bold">30%</span>
+                                </div>
+                                <div class="flex justify-between items-center p-3 bg-green-500/10 rounded-lg">
+                                    <span class="text-slate-300">☕ Java</span>
+                                    <span class="text-green-400 font-bold">15%</span>
+                                </div>
+                                <div class="flex justify-between items-center p-3 bg-green-500/10 rounded-lg">
+                                    <span class="text-slate-300">🔧 Other</span>
+                                    <span class="text-green-400 font-bold">10%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Voice Search Modal -->
+        <div id="voiceSearchModal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center fade-in">
+            <div class="modal-glass rounded-2xl w-[500px]">
+                <div class="p-6 border-b border-blue-500/20 flex justify-between items-center">
+                    <h3 class="text-xl font-semibold text-glow">Voice Search</h3>
+                    <button onclick="closeVoiceSearch()" class="text-slate-400 hover:text-blue-400 p-2 rounded-lg hover-glow transition-all">×</button>
+                </div>
+                <div class="p-6">
+                    <div class="text-center mb-6">
+                        <div class="w-20 h-20 neon-gradient rounded-2xl flex items-center justify-center mx-auto mb-4 glow-border floating-element">
+                            <span class="text-3xl">🎤</span>
+                        </div>
+                        <p class="text-sm text-slate-300">Say what you want to search for...</p>
+                        <div class="flex items-center justify-center space-x-1 mt-4">
+                            <div class="voice-wave"></div>
+                            <div class="voice-wave"></div>
+                            <div class="voice-wave"></div>
+                            <div class="voice-wave"></div>
+                            <div class="voice-wave"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <input 
+                            id="textSearchInput" 
+                            type="text" 
+                            placeholder="Or type your search here..." 
+                            class="w-full input-glass rounded-lg px-4 py-3 text-sm text-slate-300 placeholder-slate-500"
+                            onkeypress="handleSearchKeypress(event)"
+                        >
+                    </div>
+                    
+                    <div id="searchResults" class="space-y-3 max-h-48 overflow-y-auto scrollbar-custom mb-6">
+                        <div class="text-center text-slate-400 py-4">Search results will appear here</div>
+                    </div>
+                    
+                    <button onclick="stopVoiceSearch()" class="w-full btn-primary px-6 py-3 rounded-lg text-sm font-medium hover-glow" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);">
+                        🛑 Stop Listening
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let isVoiceActive = true;
+        let currentFile = 'main.py';
+        let customShortcuts = [];
+        let websocket = null;
+        let apiBaseUrl = window.location.origin;
+        
+        // Continuous listening variables
+        let continuousListening = false;
+        let continuousRecognition = null;
+        let voiceInputActive = false;
+
+        // Initialize connection with speech recognition
+        function initConnection() {
+            console.log('VoiceCode initialized');
+            addChatMessage('CodeWhisper', 'Voice recognition service ready! Say "open voice input" to start hands-free mode.');
+            initializeSpeechRecognition();
+            startContinuousListening();
+        }
+
+        let recognition = null;
+        let isListening = false;
+
+        function initializeSpeechRecognition() {
+            // Check if browser supports speech recognition
+            if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                recognition = new SpeechRecognition();
+                
+                recognition.continuous = false;
+                recognition.interimResults = false;
+                recognition.lang = 'en-US';
+
+                recognition.onstart = function() {
+                    isListening = true;
+                    updateVoiceButton();
+                    addChatMessage('CodeWhisper', '🎤 Listening... Speak now!');
+                };
+
+                recognition.onresult = function(event) {
+                    const command = event.results[0][0].transcript;
+                    addChatMessage('You', command);
+                    
+                    // Check for deactivation command
+                    if (command.toLowerCase().includes('close voice input')) {
+                        deactivateVoiceInput();
+                        return;
+                    }
+                    
+                    // Check if this is a search command
+                    if (command.toLowerCase().includes('search') || command.toLowerCase().includes('find')) {
+                        performCodeSearch(command);
+                    } else if (command.toLowerCase().includes('explain') || command.toLowerCase().includes('what does')) {
+                        explainCode();
+                    } else {
+                        // Regular voice command
+                        executeCommand(command);
+                    }
+                };
+
+                recognition.onerror = function(event) {
+                    console.error('Speech recognition error:', event.error);
+                    addChatMessage('CodeWhisper', 'Speech recognition error. Please try again.');
+                    isListening = false;
+                    updateVoiceButton();
+                };
+
+                recognition.onend = function() {
+                    isListening = false;
+                    updateVoiceButton();
+                    
+                    // If voice input is active, restart listening
+                    if (voiceInputActive) {
+                        setTimeout(() => {
+                            if (recognition && !isListening) {
+                                recognition.start();
+                            }
+                        }, 500);
+                    }
+                };
+            } else {
+                addChatMessage('CodeWhisper', 'Speech recognition not supported in this browser. Use the text commands instead.');
+            }
+        }
+
+        function startContinuousListening() {
+            // Check if browser supports speech recognition
+            if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                continuousRecognition = new SpeechRecognition();
+                
+                continuousRecognition.continuous = true;
+                continuousRecognition.interimResults = true;
+                continuousRecognition.lang = 'en-US';
+
+                continuousRecognition.onstart = function() {
+                    continuousListening = true;
+                    console.log('Continuous listening started');
+                    addChatMessage('CodeWhisper', '🔊 Continuous listening active. Say "open voice input" to activate voice commands.');
+                };
+
+                continuousRecognition.onresult = function(event) {
+                    let finalTranscript = '';
+                    let interimTranscript = '';
+                    
+                    for (let i = event.resultIndex; i < event.results.length; i++) {
+                        const transcript = event.results[i][0].transcript;
+                        if (event.results[i].isFinal) {
+                            finalTranscript += transcript;
+                        } else {
+                            interimTranscript += transcript;
+                        }
+                    }
+                    
+                    // Check for activation command
+                    const fullTranscript = (finalTranscript + interimTranscript).toLowerCase();
+                    
+                    if (fullTranscript.includes('open voice input') && !voiceInputActive) {
+                        activateVoiceInput();
+                        return;
+                    }
+                    
+                    // If voice input is active, process commands
+                    if (voiceInputActive && finalTranscript.trim()) {
+                        processVoiceCommand(finalTranscript.trim());
+                    }
+                };
+
+                continuousRecognition.onerror = function(event) {
+                    console.error('Continuous speech recognition error:', event.error);
+                    if (event.error === 'not-allowed') {
+                        addChatMessage('CodeWhisper', 'Microphone access denied. Please allow microphone access for continuous listening.');
+                        continuousListening = false;
+                    } else if (event.error === 'no-speech') {
+                        // Restart continuous listening
+                        setTimeout(() => {
+                            if (continuousListening) {
+                                continuousRecognition.start();
+                            }
+                        }, 1000);
+                    }
+                };
+
+                continuousRecognition.onend = function() {
+                    // Restart continuous listening if it should be active
+                    if (continuousListening) {
+                        setTimeout(() => {
+                            continuousRecognition.start();
+                        }, 1000);
+                    }
+                };
+
+                // Start continuous listening
+                continuousRecognition.start();
+            } else {
+                addChatMessage('CodeWhisper', 'Speech recognition not supported in this browser.');
+            }
+        }
+
+        function activateVoiceInput() {
+            voiceInputActive = true;
+            addChatMessage('CodeWhisper', '🎤 Voice input activated! You can now give voice commands. Say "close voice input" to deactivate.');
+            
+            // Update UI to show voice input is active
+            updateVoiceInputStatus();
+            
+            // Stop continuous recognition temporarily
+            if (continuousRecognition) {
+                continuousRecognition.stop();
+            }
+            
+            // Start the main voice recognition
+            if (recognition && !isListening) {
+                recognition.start();
+            }
+        }
+
+        function deactivateVoiceInput() {
+            voiceInputActive = false;
+            addChatMessage('CodeWhisper', '🔇 Voice input deactivated. Say "open voice input" to reactivate.');
+            
+            // Update UI to show voice input is inactive
+            updateVoiceInputStatus();
+            
+            // Stop main recognition
+            if (recognition && isListening) {
+                recognition.stop();
+            }
+            
+            // Restart continuous listening
+            if (continuousListening && continuousRecognition) {
+                continuousRecognition.start();
+            }
+        }
+
+        function updateVoiceInputStatus() {
+            const statusElement = document.getElementById('speechStatus');
+            if (statusElement) {
+                if (voiceInputActive) {
+                    statusElement.textContent = '🎤 Voice input active - Give commands!';
+                    statusElement.className = 'text-xs text-green-400 mt-2 text-center';
+                } else {
+                    statusElement.textContent = 'Say "open voice input" to activate';
+                    statusElement.className = 'text-xs text-slate-400 mt-2 text-center';
+                }
+            }
+        }
+
+        function processVoiceCommand(command) {
+            // Check for deactivation command
+            if (command.toLowerCase().includes('close voice input')) {
+                deactivateVoiceInput();
+                return;
+            }
+            
+            // Process the command normally
+            executeCommand(command);
+        }
+
+        function startListening() {
+            if (recognition && !isListening) {
+                recognition.start();
+            }
+        }
+
+        function stopListening() {
+            if (recognition && isListening) {
+                recognition.stop();
+            }
+        }
+
+        function updateVoiceButton() {
+            const toggle = document.getElementById('voiceToggle');
+            const indicator = document.getElementById('voiceIndicator');
+            const status = document.getElementById('speechStatus');
+            
+            if (voiceInputActive) {
+                toggle.textContent = '🎤 ACTIVE';
+                toggle.className = 'bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg text-xs font-medium';
+                indicator.classList.remove('hidden');
+                status.textContent = '🎤 Voice input active - Give commands!';
+                status.className = 'text-xs text-green-400 mt-2 text-center';
+            } else if (continuousListening) {
+                toggle.textContent = '🔊 LISTENING';
+                toggle.className = 'bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-xs font-medium';
+                indicator.classList.add('hidden');
+                status.textContent = 'Say "open voice input" to activate';
+                status.className = 'text-xs text-blue-400 mt-2 text-center';
+            } else {
+                toggle.textContent = '🎤 OFF';
+                toggle.className = 'bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded-lg text-xs font-medium';
+                indicator.classList.add('hidden');
+                status.textContent = 'Voice recognition disabled';
+                status.className = 'text-xs text-gray-400 mt-2 text-center';
+            }
+        }
+
+        function showIDE() {
+            document.getElementById('landingPage').classList.add('hidden');
+            document.getElementById('ideInterface').classList.remove('hidden');
+            initConnection();
+        }
+
+        function showLanding() {
+            document.getElementById('ideInterface').classList.add('hidden');
+            document.getElementById('landingPage').classList.remove('hidden');
+        }
+
+        function toggleVoice() {
+            if (!recognition) {
+                addChatMessage('CodeWhisper', 'Speech recognition not available. Use the text commands instead.');
+                return;
+            }
+
+            if (voiceInputActive) {
+                deactivateVoiceInput();
+            } else {
+                activateVoiceInput();
+            }
+        }
+
+        async function openFile(filename) {
+            currentFile = filename;
+            document.getElementById('activeTab').innerHTML = `
+                <span class="text-sm">${filename}</span>
+                <button class="text-gray-400 hover:text-white text-xs">×</button>
+            `;
+            
+            try {
+                const response = await fetch(`${apiBaseUrl}/code/files/${filename}`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    displayFileContent(data.content, filename);
+                } else {
+                    // File doesn't exist, create a new one
+                    displayFileContent('', filename);
+                }
+            } catch (error) {
+                console.error('Error loading file:', error);
+                displayFileContent('', filename);
+            }
+        }
+
+        function displayFileContent(content, filename) {
+            const codeContent = document.getElementById('codeContent');
+            
+            if (!content) {
+                // Empty file, show template based on file type
+            if (filename.endsWith('.py')) {
+                    content = `# ${filename}\ndef main():\n    pass`;
+            } else if (filename.endsWith('.js')) {
+                    content = `// ${filename}\nfunction main() {\n    console.log("Hello World");\n}`;
+                } else if (filename.endsWith('.html')) {
+                    content = `<!DOCTYPE html>\n<html>\n<head>\n    <title>${filename}</title>\n</head>\n<body>\n    <h1>Hello World</h1>\n</body>\n</html>`;
+                }
+            }
+            
+            codeContent.value = content;
+            updateLineNumbers();
+        }
+
+        async function createNewFile() {
+            const filename = prompt('Enter filename:');
+            if (filename) {
+                try {
+                    const response = await fetch(`${apiBaseUrl}/code/files`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            filename: filename,
+                            content: ''
+                        })
+                    });
+                    
+                    if (response.ok) {
+                openFile(filename);
+                        addChatMessage('CodeWhisper', `Created new file: ${filename}`);
+                    } else {
+                        addChatMessage('CodeWhisper', `Error creating file: ${filename}`);
+                    }
+                } catch (error) {
+                    console.error('Error creating file:', error);
+                    addChatMessage('CodeWhisper', `Error creating file: ${filename}`);
+                }
+            }
+        }
+
+        async function executeCommand(command) {
+            document.getElementById('lastCommand').textContent = `Last: "${command}"`;
+            addChatMessage('You', command);
+            
+            try {
+                const language = document.getElementById('languageSelector').value;
+                const response = await fetch(`${apiBaseUrl}/voice/process`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        command: command,
+                        language: language
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    addChatMessage('VoiceCode', data.response);
+                    
+                    // Handle different action types
+                    if (data.action_type === 'code' && data.code_generated) {
+                        addCodeToEditor(data.code_generated);
+                    } else if (data.action_type === 'navigation') {
+                        handleNavigationAction(data.action_data);
+                    } else if (data.action_type === 'feature') {
+                        handleFeatureAction(data.action_data);
+                    } else if (data.action_type === 'file') {
+                        handleFileAction(data.action_data);
+                    } else if (data.action_type === 'voice_control') {
+                        handleVoiceControlAction(data.action_data);
+                    }
+                } else {
+                    addChatMessage('CodeWhisper', 'Error processing command');
+                }
+            } catch (error) {
+                console.error('Error executing command:', error);
+                addChatMessage('CodeWhisper', 'Error processing voice command');
+            }
+        }
+
+        function handleNavigationAction(actionData) {
+            const action = actionData.action;
+            
+            switch (action) {
+                case 'go_to_home':
+                    showLanding();
+                    break;
+                case 'go_to_ide':
+                    showIDE();
+                    break;
+                case 'toggle_menu':
+                    toggleHamburgerMenu();
+                    break;
+                case 'go_back':
+                    // Simple back functionality
+                    if (document.getElementById('ideInterface').classList.contains('hidden')) {
+                        showIDE();
+                    } else {
+                        showLanding();
+                    }
+                    break;
+                default:
+                    console.log('Unknown navigation action:', action);
+            }
+        }
+
+        function handleFeatureAction(actionData) {
+            const action = actionData.action;
+            
+            switch (action) {
+                case 'open_voice_search':
+                    startVoiceSearch();
+                    break;
+                case 'open_analytics':
+                    openAnalytics();
+                    break;
+                case 'start_debug':
+                    startAutoDebug();
+                    break;
+                case 'open_shortcuts':
+                    openVoiceShortcuts();
+                    break;
+                case 'explain_code':
+                    explainCode();
+                    break;
+                default:
+                    console.log('Unknown feature action:', action);
+            }
+        }
+
+        function handleVoiceControlAction(actionData) {
+            const action = actionData.action;
+            
+            switch (action) {
+                case 'activate_voice_input':
+                    activateVoiceInput();
+                    break;
+                case 'deactivate_voice_input':
+                    deactivateVoiceInput();
+                    break;
+                default:
+                    console.log('Unknown voice control action:', action);
+            }
+        }
+
+        async function createNewFileWithName(filename) {
+            try {
+                const response = await fetch(`${apiBaseUrl}/code/files`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        filename: filename,
+                        content: ''
+                    })
+                });
+                
+                if (response.ok) {
+                    openFile(filename);
+                    addChatMessage('CodeWhisper', `Created new file: ${filename}`);
+                } else {
+                    addChatMessage('CodeWhisper', `Error creating file: ${filename}`);
+                }
+            } catch (error) {
+                console.error('Error creating file:', error);
+                addChatMessage('CodeWhisper', `Error creating file: ${filename}`);
+            }
+        }
+
+        async function deleteFile(filename) {
+            try {
+                const response = await fetch(`${apiBaseUrl}/code/files/${filename}`, {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    addChatMessage('CodeWhisper', `Deleted file: ${filename}`);
+                } else {
+                    addChatMessage('CodeWhisper', `Error deleting file: ${filename}`);
+                }
+            } catch (error) {
+                console.error('Error deleting file:', error);
+                addChatMessage('CodeWhisper', `Error deleting file: ${filename}`);
+            }
+        }
+
+        function handleVoiceResponse(data) {
+            addChatMessage('CodeWhisper', data.response);
+            if (data.code_generated) {
+                addCodeToEditor(data.code_generated);
+            }
+        }
+
+        function addCodeToEditor(code) {
+            const codeContent = document.getElementById('codeContent');
+            const currentContent = codeContent.value;
+            const newContent = currentContent + '\n' + code;
+            codeContent.value = newContent;
+            updateLineNumbers();
+        }
+
+        function updateLineNumbers() {
+            // This function can be expanded to update line numbers dynamically
+            // For now, it's a placeholder for future enhancement
+        }
+
+        function handleEditorKeydown(event) {
+            // Handle special key combinations
+            if (event.ctrlKey && event.key === 's') {
+                event.preventDefault();
+                saveCurrentFile();
+            }
+        }
+
+        function sendChatMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            if (message) {
+                addChatMessage('You', message);
+                input.value = '';
+                
+                // Simulate AI response
+                setTimeout(() => {
+                    const responses = [
+                        "I can help you with that! Let me generate the code for you.",
+                        "Great question! Here's what I recommend...",
+                        "I'll add that to your code right away.",
+                        "That's a common pattern. Let me show you the best approach."
+                    ];
+                    const response = responses[Math.floor(Math.random() * responses.length)];
+                    addChatMessage('CodeWhisper', response);
+                }, 1000);
+            }
+        }
+
+        function handleChatKeypress(event) {
+            if (event.key === 'Enter') {
+                sendChatMessage();
+            }
+        }
+
+        function addChatMessage(sender, message) {
+            const chatMessages = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            const isBot = sender === 'CodeWhisper';
+            
+            if (isBot) {
+                messageDiv.className = 'chat-bubble p-4 rounded-xl text-sm';
+                messageDiv.innerHTML = `<strong class="text-blue-400">${sender}:</strong> <span class="text-slate-300">${message}</span>`;
+            } else {
+                messageDiv.className = 'glassmorphism p-4 rounded-xl text-sm';
+                messageDiv.innerHTML = `<strong class="text-green-400">${sender}:</strong> <span class="text-slate-300">${message}</span>`;
+            }
+            
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // Hamburger Menu Functions
+        function toggleHamburgerMenu() {
+            const menu = document.getElementById('hamburgerMenu');
+            menu.classList.toggle('hidden');
+        }
+
+        function explainCode() {
+            toggleHamburgerMenu();
+            
+            const codeContent = document.getElementById('codeContent');
+            if (!codeContent) {
+                addChatMessage('CodeWhisper', 'Error: Code editor not found.');
+                return;
+            }
+            
+            const content = codeContent.value;
+            
+            if (!content || !content.trim()) {
+                addChatMessage('CodeWhisper', 'No code to explain. Please add some code to the editor first.');
+                return;
+            }
+            
+            addChatMessage('CodeWhisper', '🔍 Analyzing your code...');
+            
+            // Analyze the code and provide explanations
+            const lines = content.split('\n');
+            let explanation = '🔍 **Code Analysis:**\n\n';
+            let hasContent = false;
+            
+            lines.forEach((line, index) => {
+                const lineNumber = index + 1;
+                const trimmedLine = line.trim();
+                
+                if (trimmedLine.startsWith('def ')) {
+                    const functionName = trimmedLine.split('(')[0].replace('def ', '');
+                    explanation += `**Line ${lineNumber}:** Function definition "${functionName}" - This creates a reusable block of code.\n`;
+                    hasContent = true;
+                } else if (trimmedLine.startsWith('class ')) {
+                    const className = trimmedLine.split('(')[0].replace('class ', '').split(':')[0];
+                    explanation += `**Line ${lineNumber}:** Class definition "${className}" - This creates a blueprint for objects.\n`;
+                    hasContent = true;
+                } else if (trimmedLine.startsWith('import ')) {
+                    const moduleName = trimmedLine.replace('import ', '').split(' ')[0];
+                    explanation += `**Line ${lineNumber}:** Import statement - This brings in external functionality from "${moduleName}".\n`;
+                    hasContent = true;
+                } else if (trimmedLine.includes('for ') && trimmedLine.includes(' in ')) {
+                    explanation += `**Line ${lineNumber}:** For loop - This repeats code for each item in a sequence.\n`;
+                    hasContent = true;
+                } else if (trimmedLine.includes('while ')) {
+                    explanation += `**Line ${lineNumber}:** While loop - This repeats code as long as a condition is true.\n`;
+                    hasContent = true;
+                } else if (trimmedLine.startsWith('if ')) {
+                    explanation += `**Line ${lineNumber}:** If statement - This executes code only when a condition is true.\n`;
+                    hasContent = true;
+                } else if (trimmedLine.includes('print(')) {
+                    explanation += `**Line ${lineNumber}:** Print statement - This displays output to the console.\n`;
+                    hasContent = true;
+                } else if (trimmedLine.includes('=') && !trimmedLine.includes('==') && !trimmedLine.includes('!=') && !trimmedLine.includes('>=') && !trimmedLine.includes('<=')) {
+                    const varName = trimmedLine.split('=')[0].trim();
+                    if (varName && !varName.includes('(') && !varName.includes(')')) {
+                        explanation += `**Line ${lineNumber}:** Variable assignment - This stores a value in "${varName}".\n`;
+                        hasContent = true;
+                    }
+                } else if (trimmedLine.startsWith('#') || trimmedLine.startsWith('"""')) {
+                    explanation += `**Line ${lineNumber}:** Comment - This is documentation that doesn't affect code execution.\n`;
+                    hasContent = true;
+                }
+            });
+            
+            if (!hasContent) {
+                explanation += 'No recognizable code patterns found. This might be plain text or a different programming language.\n';
+            }
+            
+            // Add summary
+            const functionCount = (content.match(/def /g) || []).length;
+            const classCount = (content.match(/class /g) || []).length;
+            const loopCount = (content.match(/for |while /g) || []).length;
+            const variableCount = (content.match(/= /g) || []).length;
+            const importCount = (content.match(/import /g) || []).length;
+            
+            explanation += `\n📊 **Summary:**\n`;
+            explanation += `• ${functionCount} function(s)\n`;
+            explanation += `• ${classCount} class(es)\n`;
+            explanation += `• ${loopCount} loop(s)\n`;
+            explanation += `• ${variableCount} variable assignment(s)\n`;
+            explanation += `• ${importCount} import statement(s)\n`;
+            explanation += `• ${lines.length} total line(s)\n`;
+            
+            // Add a small delay to show the "analyzing" message
+            setTimeout(() => {
+                addChatMessage('CodeWhisper', explanation);
+            }, 500);
+        }
+
+        function openVoiceShortcuts() {
+            toggleHamburgerMenu();
+            document.getElementById('voiceShortcutsModal').classList.remove('hidden');
+        }
+
+        function closeVoiceShortcuts() {
+            document.getElementById('voiceShortcutsModal').classList.add('hidden');
+        }
+
+        function saveShortcut() {
+            const command = document.getElementById('shortcutCommand').value;
+            const template = document.getElementById('shortcutTemplate').value;
+            
+            if (command && template) {
+                customShortcuts.push({ command, template });
+                updateShortcutsList();
+                document.getElementById('shortcutCommand').value = '';
+                document.getElementById('shortcutTemplate').value = '';
+                addChatMessage('CodeWhisper', `New voice shortcut created: "${command}"`);
+            }
+        }
+
+        function updateShortcutsList() {
+            const list = document.getElementById('shortcutsList');
+            list.innerHTML = '';
+            customShortcuts.forEach((shortcut, index) => {
+                const div = document.createElement('div');
+                div.className = 'bg-gray-700 p-2 rounded flex justify-between';
+                div.innerHTML = `
+                    <span>"${shortcut.command}" → ${shortcut.template.substring(0, 20)}...</span>
+                    <button onclick="deleteShortcut(${index})" class="text-red-400 hover:text-red-300">Delete</button>
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        function deleteShortcut(index) {
+            customShortcuts.splice(index, 1);
+            updateShortcutsList();
+        }
+
+        function startVoiceSearch() {
+            toggleHamburgerMenu();
+            document.getElementById('voiceSearchModal').classList.remove('hidden');
+            addChatMessage('CodeWhisper', 'Voice search activated. Say "search for [keyword]" or use the text input below.');
+            
+            // Set up a temporary voice recognition for search
+            if (recognition) {
+                const originalOnResult = recognition.onresult;
+                
+                recognition.onresult = function(event) {
+                    const searchQuery = event.results[0][0].transcript;
+                    addChatMessage('You', `Searching for: "${searchQuery}"`);
+                    performCodeSearch(searchQuery);
+                    
+                    // Restore original onresult handler
+                    recognition.onresult = originalOnResult;
+                };
+                
+                if (!isListening) {
+                    recognition.start();
+                }
+            }
+        }
+
+        function closeVoiceSearch() {
+            document.getElementById('voiceSearchModal').classList.add('hidden');
+        }
+
+        function stopVoiceSearch() {
+            closeVoiceSearch();
+            addChatMessage('CodeWhisper', 'Voice search stopped.');
+        }
+
+        function performCodeSearch(searchQuery) {
+            const codeContent = document.getElementById('codeContent');
+            const content = codeContent.value;
+            const searchResults = document.getElementById('searchResults');
+            
+            // Clear previous results
+            searchResults.innerHTML = '';
+            
+            if (!content.trim()) {
+                addChatMessage('CodeWhisper', 'No code to search in. Please add some code first.');
+                return;
+            }
+            
+            const lines = content.split('\n');
+            const results = [];
+            const searchTerm = searchQuery.toLowerCase();
+            
+            // Search through each line
+            lines.forEach((line, index) => {
+                const lineNumber = index + 1;
+                const lineLower = line.toLowerCase();
+                
+                // Check for various search patterns - use OR logic instead of else if
+                let found = false;
+                
+                // For loops - improved matching
+                if (searchTerm.includes('for loop') || searchTerm.includes('for') || searchTerm === 'for') {
+                    if (lineLower.includes('for')) {
+                        results.push({
+                            line: lineNumber,
+                            content: line.trim(),
+                            type: 'for loop',
+                            match: 'for'
+                        });
+                        found = true;
+                    }
+                }
+                
+                // While loops - improved matching
+                if (searchTerm.includes('while loop') || searchTerm.includes('while') || searchTerm === 'while') {
+                    if (lineLower.includes('while')) {
+                        results.push({
+                            line: lineNumber,
+                            content: line.trim(),
+                            type: 'while loop',
+                            match: 'while'
+                        });
+                        found = true;
+                    }
+                }
+                
+                // Functions - improved matching
+                if (searchTerm.includes('function') || searchTerm.includes('def') || searchTerm === 'def') {
+                    if (lineLower.includes('def')) {
+                        results.push({
+                            line: lineNumber,
+                            content: line.trim(),
+                            type: 'function',
+                            match: 'def'
+                        });
+                        found = true;
+                    }
+                }
+                
+                // Variables - improved matching
+                if (searchTerm.includes('variable') || searchTerm.includes('var') || searchTerm === 'var') {
+                    if (lineLower.includes('=') && !lineLower.includes('==') && !lineLower.includes('!=')) {
+                        results.push({
+                            line: lineNumber,
+                            content: line.trim(),
+                            type: 'variable',
+                            match: 'assignment'
+                        });
+                        found = true;
+                    }
+                }
+                
+                // If statements - improved matching
+                if (searchTerm.includes('if') || searchTerm.includes('condition') || searchTerm === 'if') {
+                    if (lineLower.includes('if')) {
+                        results.push({
+                            line: lineNumber,
+                            content: line.trim(),
+                            type: 'condition',
+                            match: 'if'
+                        });
+                        found = true;
+                    }
+                }
+                
+                // Print statements - improved matching
+                if (searchTerm.includes('print') || searchTerm === 'print') {
+                    if (lineLower.includes('print')) {
+                        results.push({
+                            line: lineNumber,
+                            content: line.trim(),
+                            type: 'print statement',
+                            match: 'print'
+                        });
+                        found = true;
+                    }
+                }
+                
+                // Classes - improved matching
+                if (searchTerm.includes('class') || searchTerm === 'class') {
+                    if (lineLower.includes('class')) {
+                        results.push({
+                            line: lineNumber,
+                            content: line.trim(),
+                            type: 'class',
+                            match: 'class'
+                        });
+                        found = true;
+                    }
+                }
+                
+                // Imports - improved matching
+                if (searchTerm.includes('import') || searchTerm === 'import') {
+                    if (lineLower.includes('import')) {
+                        results.push({
+                            line: lineNumber,
+                            content: line.trim(),
+                            type: 'import',
+                            match: 'import'
+                        });
+                        found = true;
+                    }
+                }
+                
+                // Check for specific variable name search
+                if (!found) {
+                    const variableName = searchTerm.trim();
+                    if (variableName && /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(variableName)) {
+                        if (lineLower.includes(variableName)) {
+                            results.push({
+                                line: lineNumber,
+                                content: line.trim(),
+                                type: 'variable usage',
+                                match: variableName
+                            });
+                            found = true;
+                        }
+                    }
+                }
+                
+                // General text search as fallback
+                if (!found && lineLower.includes(searchTerm)) {
+                    results.push({
+                        line: lineNumber,
+                        content: line.trim(),
+                        type: 'text match',
+                        match: searchTerm
+                    });
+                }
+            });
+            
+            // Display results
+            if (results.length === 0) {
+                addChatMessage('CodeWhisper', `No matches found for "${searchQuery}". Try searching for "for loop", "function", "variable", or "if statement".`);
+                searchResults.innerHTML = '<div class="text-center text-slate-400 py-4">No matches found</div>';
+            } else {
+                addChatMessage('CodeWhisper', `Found ${results.length} match(es) for "${searchQuery}"`);
+                
+                results.forEach(result => {
+                    const resultDiv = document.createElement('div');
+                    resultDiv.className = 'glassmorphism p-4 rounded-lg hover-glow cursor-pointer';
+                    resultDiv.innerHTML = `
+                        <div class="font-semibold text-blue-400 text-sm">Line ${result.line} - ${result.type}</div>
+                        <div class="text-slate-300 text-sm mt-1 font-mono">${result.content}</div>
+                        <div class="text-xs text-slate-400 mt-1">Matched: "${result.match}"</div>
+                    `;
+                    resultDiv.onclick = () => highlightLine(result.line);
+                    searchResults.appendChild(resultDiv);
+                });
+            }
+        }
+
+        function highlightLine(lineNumber) {
+            const codeContent = document.getElementById('codeContent');
+            const lines = codeContent.value.split('\n');
+            
+            // Focus on the textarea
+            codeContent.focus();
+            
+            // Calculate cursor position (approximate)
+            let position = 0;
+            for (let i = 0; i < lineNumber - 1; i++) {
+                position += lines[i].length + 1; // +1 for newline
+            }
+            
+            // Set cursor position
+            codeContent.setSelectionRange(position, position);
+            
+            // Scroll to the line
+            const lineHeight = 20; // Approximate line height
+            const scrollTop = (lineNumber - 1) * lineHeight;
+            codeContent.scrollTop = scrollTop;
+            
+            addChatMessage('CodeWhisper', `Jumped to line ${lineNumber}`);
+        }
+
+        function handleSearchKeypress(event) {
+            if (event.key === 'Enter') {
+                const searchInput = document.getElementById('textSearchInput');
+                const searchQuery = searchInput.value.trim();
+                if (searchQuery) {
+                    addChatMessage('You', `Searching for: "${searchQuery}"`);
+                    performCodeSearch(searchQuery);
+                }
+            }
+        }
+
+        function startAutoDebug() {
+            toggleHamburgerMenu();
+            
+            const codeContent = document.getElementById('codeContent');
+            const content = codeContent.value;
+            
+            if (!content.trim()) {
+                addChatMessage('CodeWhisper', 'No code to debug. Please add some code to the editor first.');
+                return;
+            }
+            
+            addChatMessage('CodeWhisper', '🔧 Starting auto debug analysis...');
+            
+            // Analyze the code for common issues
+            const lines = content.split('\n');
+            const issues = [];
+            const suggestions = [];
+            
+            lines.forEach((line, index) => {
+                const lineNumber = index + 1;
+                const trimmedLine = line.trim();
+                
+                // Check for common syntax issues
+                if (trimmedLine.includes('print ') && !trimmedLine.includes('print(')) {
+                    issues.push({
+                        line: lineNumber,
+                        type: 'Syntax Error',
+                        message: 'Print statement missing parentheses',
+                        suggestion: 'Use print() instead of print'
+                    });
+                }
+                
+                if (trimmedLine.includes('if ') && !trimmedLine.includes(':')) {
+                    issues.push({
+                        line: lineNumber,
+                        type: 'Syntax Error',
+                        message: 'If statement missing colon',
+                        suggestion: 'Add colon after condition'
+                    });
+                }
+                
+                if (trimmedLine.includes('def ') && !trimmedLine.includes(':')) {
+                    issues.push({
+                        line: lineNumber,
+                        type: 'Syntax Error',
+                        message: 'Function definition missing colon',
+                        suggestion: 'Add colon after function signature'
+                    });
+                }
+                
+                if (trimmedLine.includes('for ') && !trimmedLine.includes(':')) {
+                    issues.push({
+                        line: lineNumber,
+                        type: 'Syntax Error',
+                        message: 'For loop missing colon',
+                        suggestion: 'Add colon after loop condition'
+                    });
+                }
+                
+                if (trimmedLine.includes('while ') && !trimmedLine.includes(':')) {
+                    issues.push({
+                        line: lineNumber,
+                        type: 'Syntax Error',
+                        message: 'While loop missing colon',
+                        suggestion: 'Add colon after condition'
+                    });
+                }
+                
+                // Check for potential logic issues
+                if (trimmedLine.includes('== True')) {
+                    issues.push({
+                        line: lineNumber,
+                        type: 'Logic Issue',
+                        message: 'Redundant comparison with True',
+                        suggestion: 'Remove "== True" for cleaner code'
+                    });
+                }
+                
+                if (trimmedLine.includes('== False')) {
+                    issues.push({
+                        line: lineNumber,
+                        type: 'Logic Issue',
+                        message: 'Redundant comparison with False',
+                        suggestion: 'Use "not" instead of "== False"'
+                    });
+                }
+                
+                // Check for unused variables (simple detection)
+                if (trimmedLine.includes('=') && !trimmedLine.includes('==') && !trimmedLine.includes('!=')) {
+                    const varName = trimmedLine.split('=')[0].trim();
+                    if (varName && !varName.includes('(') && !varName.includes(')')) {
+                        // Check if variable is used elsewhere
+                        const isUsed = content.toLowerCase().includes(varName.toLowerCase()) && 
+                                     content.toLowerCase().split(varName.toLowerCase()).length > 2;
+                        if (!isUsed) {
+                            issues.push({
+                                line: lineNumber,
+                                type: 'Warning',
+                                message: `Variable "${varName}" might be unused`,
+                                suggestion: 'Consider removing if not needed'
+                            });
+                        }
+                    }
+                }
+            });
+            
+            // Generate debug report
+            let debugReport = '🐛 **Auto Debug Report:**\n\n';
+            
+            if (issues.length === 0) {
+                debugReport += '✅ **No issues found!** Your code looks clean.\n\n';
+                debugReport += '**Suggestions for improvement:**\n';
+                debugReport += '• Add comments to complex functions\n';
+                debugReport += '• Consider adding error handling\n';
+                debugReport += '• Use meaningful variable names\n';
+                debugReport += '• Add type hints for better code clarity\n';
+            } else {
+                debugReport += `❌ **Found ${issues.length} issue(s):**\n\n`;
+                
+                issues.forEach((issue, index) => {
+                    debugReport += `**${index + 1}. Line ${issue.line} - ${issue.type}:**\n`;
+                    debugReport += `   • Issue: ${issue.message}\n`;
+                    debugReport += `   • Fix: ${issue.suggestion}\n\n`;
+                });
+                
+                debugReport += '**Auto-fix suggestions:**\n';
+                debugReport += '• Review each issue above\n';
+                debugReport += '• Apply the suggested fixes\n';
+                debugReport += '• Test your code after making changes\n';
+            }
+            
+            // Add code quality metrics
+            const functionCount = (content.match(/def /g) || []).length;
+            const classCount = (content.match(/class /g) || []).length;
+            const commentCount = (content.match(/#/g) || []).length;
+            const lineCount = lines.length;
+            
+            debugReport += `\n📊 **Code Quality Metrics:**\n`;
+            debugReport += `• ${functionCount} function(s)\n`;
+            debugReport += `• ${classCount} class(es)\n`;
+            debugReport += `• ${commentCount} comment(s)\n`;
+            debugReport += `• ${lineCount} line(s) of code\n`;
+            debugReport += `• Comment ratio: ${((commentCount / lineCount) * 100).toFixed(1)}%\n`;
+            
+            if ((commentCount / lineCount) < 0.1) {
+                debugReport += `⚠️ **Low comment ratio** - Consider adding more documentation\n`;
+            }
+            
+            addChatMessage('CodeWhisper', debugReport);
+        }
+
+        function openAnalytics() {
+            toggleHamburgerMenu();
+            document.getElementById('analyticsModal').classList.remove('hidden');
+        }
+
+        function closeAnalytics() {
+            document.getElementById('analyticsModal').classList.add('hidden');
+        }
+
+        function changeLanguage() {
+            const selector = document.getElementById('languageSelector');
+            const language = selector.value;
+            const languageNames = {
+                'python': 'Python',
+                'javascript': 'JavaScript',
+                'java': 'Java',
+                'cpp': 'C++',
+                'csharp': 'C#',
+                'go': 'Go',
+                'rust': 'Rust',
+                'php': 'PHP',
+                'ruby': 'Ruby',
+                'typescript': 'TypeScript'
+            };
+            
+            addChatMessage('CodeWhisper', `Language changed to ${languageNames[language]}. Voice commands will now generate ${languageNames[language]} code.`);
+            
+            // Update code content based on selected language
+            const codeContent = document.getElementById('codeContent');
+            if (language === 'javascript') {
+                codeContent.innerHTML = `
+                    <div><span class="syntax-comment">// Voice-Enabled Code Assistant</span></div>
+                    <div><span class="syntax-keyword">const</span> <span class="syntax-function">listenForCommand</span> = () => {</div>
+                    <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="syntax-comment">// Listen for voice commands</span></div>
+                    <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="syntax-keyword">return</span> <span class="syntax-string">"command"</span>;</div>
+                    <div>};</div>
+                `;
+            } else if (language === 'java') {
+                codeContent.innerHTML = `
+                    <div><span class="syntax-comment">// Voice-Enabled Code Assistant</span></div>
+                    <div><span class="syntax-keyword">public class</span> VoiceAssistant {</div>
+                    <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="syntax-keyword">public static</span> <span class="syntax-keyword">void</span> <span class="syntax-function">main</span>(String[] args) {</div>
+                    <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="syntax-comment">// Voice command processing</span></div>
+                    <div>&nbsp;&nbsp;&nbsp;&nbsp;}</div>
+                    <div>}</div>
+                `;
+            }
+        }
+
+        // Save current file content
+        async function saveCurrentFile() {
+            if (!currentFile) return;
+            
+            try {
+                const codeContent = document.getElementById('codeContent');
+                const content = extractTextFromHTML(codeContent.innerHTML);
+                
+                const response = await fetch(`${apiBaseUrl}/code/files/${currentFile}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        content: content
+                    })
+                });
+                
+                if (response.ok) {
+                    addChatMessage('CodeWhisper', `File ${currentFile} saved successfully!`);
+                } else {
+                    addChatMessage('CodeWhisper', `Error saving file: ${currentFile}`);
+                }
+            } catch (error) {
+                console.error('Error saving file:', error);
+                addChatMessage('CodeWhisper', `Error saving file: ${currentFile}`);
+            }
+        }
+
+        function extractTextFromHTML(htmlContent) {
+            // For textarea, we just return the value directly
+            const codeContent = document.getElementById('codeContent');
+            return codeContent.value;
+        }
+
+        // Auto-save functionality
+        setInterval(saveCurrentFile, 30000); // Auto-save every 30 seconds
+
+        // Simulate voice recognition
+        setInterval(() => {
+            if (isVoiceActive && Math.random() < 0.1) {
+                const commands = [
+                    'create a new function',
+                    'add error handling',
+                    'format this code',
+                    'add type hints'
+                ];
+                const command = commands[Math.floor(Math.random() * commands.length)];
+                executeCommand(command);
+            }
+        }, 10000);
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9944a291258aff73',t:'MTc2MTQyNTkzOC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
