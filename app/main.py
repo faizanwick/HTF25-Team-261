@@ -75,54 +75,49 @@ def home(request: Request):
         return FileResponse(template_path)
     return {"message": "Voice-Enabled Code Assistant API is running 🚀"}
 
-@app.get("/signup", response_class=HTMLResponse)
-def signup_form(request: Request):
-    return templates.TemplateResponse("signup.html", {"request": request})
+@app.get("/auth", response_class=HTMLResponse)
+def auth_form(request: Request):
+    return templates.TemplateResponse("auth.html", {"request": request})
 
-@app.post("/signup", response_class=HTMLResponse)
-def signup_submit(
+@app.post("/auth", response_class=HTMLResponse)
+def auth_submit(
     request: Request,
-    username: str = Form(...),
+    action: str = Form(...),
     email: EmailStr = Form(...),
-    password: str = Form(...)
+    password: str = Form(...),
+    username: str = Form(None)
 ):
     try:
-        if user_collection.find_one({"email": email}):
+        if action == "signup":
+            # Signup logic
+            if user_collection.find_one({"email": email}):
+                return templates.TemplateResponse(
+                    "auth.html", {"request": request, "error": "Email already registered"}
+                )
+            user_dict = {"username": username, "email": email, "password": password}
+            user_collection.insert_one(user_dict)
+            return RedirectResponse(url="/", status_code=303)
+        
+        elif action == "login":
+            # Login logic
+            db_user = user_collection.find_one({"email": email})
+            if not db_user:
+                return templates.TemplateResponse(
+                    "auth.html", {"request": request, "error": "Email not registered"}
+                )
+            if db_user["password"] != password:
+                return templates.TemplateResponse(
+                    "auth.html", {"request": request, "error": "Incorrect password"}
+                )
+            return RedirectResponse(url="/", status_code=303)
+        
+        else:
             return templates.TemplateResponse(
-                "signup.html", {"request": request, "error": "Email already registered"}
+                "auth.html", {"request": request, "error": "Invalid action"}
             )
-        user_dict = {"username": username, "email": email, "password": password}
-        user_collection.insert_one(user_dict)
-        return RedirectResponse(url="/login", status_code=303)
     except Exception as e:
         return templates.TemplateResponse(
-            "signup.html", {"request": request, "error": f"An error occurred: {e}"}
-        )
-
-@app.get("/login", response_class=HTMLResponse)
-def login_form(request: Request):
-    return templates.TemplateResponse("login.html", {"request": request})
-
-@app.post("/login", response_class=HTMLResponse)
-def login_submit(
-    request: Request,
-    email: EmailStr = Form(...),
-    password: str = Form(...)
-):
-    try:
-        db_user = user_collection.find_one({"email": email})
-        if not db_user:
-            return templates.TemplateResponse(
-                "login.html", {"request": request, "error": "Email not registered"}
-            )
-        if db_user["password"] != password:
-            return templates.TemplateResponse(
-                "login.html", {"request": request, "error": "Incorrect password"}
-            )
-        return RedirectResponse(url="/", status_code=303)
-    except Exception as e:
-        return templates.TemplateResponse(
-            "login.html", {"request": request, "error": f"An error occurred: {e}"}
+            "auth.html", {"request": request, "error": f"An error occurred: {e}"}
         )
 
 # -------------------------------
