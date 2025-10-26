@@ -1,39 +1,15 @@
 from fastapi import FastAPI, Request, Form
-from fastapi.staticfiles import StaticFiles
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import EmailStr
 from pymongo import MongoClient, errors
 import requests
-import os
-from app.api import routes_voice, routes_code
 
 # -------------------------------
 # FastAPI App
 # -------------------------------
 app = FastAPI(title="Voice-Enabled Code Assistant", version="1.0")
 
-# Add CORS middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # In production, specify your frontend domain
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# Include Routers
-app.include_router(routes_voice.router, prefix="/voice", tags=["Voice Commands"])
-app.include_router(routes_code.router, prefix="/code", tags=["Code Operations"])
-
-# Serve static files
-template_dir = os.path.join(os.path.dirname(__file__), "..", "template")
-app.mount("/static", StaticFiles(directory=template_dir), name="static")
-
-@app.get("/health")
-def health_check():
-    return {"status": "healthy", "message": "Voice-Enabled Code Assistant is running 🚀"}
 # -------------------------------
 # MongoDB Atlas Connection
 # -------------------------------
@@ -43,19 +19,19 @@ try:
     client = MongoClient(MONGO_DETAILS)
     db = client["project"]
     user_collection = db["database"]
-    print("✅ Connected to MongoDB Atlas successfully")
+    print("Γ£à Connected to MongoDB Atlas successfully")
 except errors.ConnectionFailure as e:
-    print("❌ Could not connect to MongoDB:", e)
+    print("Γ¥î Could not connect to MongoDB:", e)
 
 # -------------------------------
 # Templates
 # -------------------------------
-templates = Jinja2Templates(directory="template")
+templates = Jinja2Templates(directory="Template")
 
 # -------------------------------
 # OpenRouter Configuration
 # -------------------------------
-OPENROUTER_API_KEY = "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"
+OPENROUTER_API_KEY = "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"
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 # -------------------------------
@@ -72,7 +48,7 @@ def home(request: Request):
 
 @app.get("/signup", response_class=HTMLResponse)
 def signup_form(request: Request):
-    return templates.TemplateResponse("auth.html", {"request": request, "action": "signup"})
+    return templates.TemplateResponse("signup.html", {"request": request})
 
 @app.post("/signup", response_class=HTMLResponse)
 def signup_submit(
@@ -84,19 +60,19 @@ def signup_submit(
     try:
         if user_collection.find_one({"email": email}):
             return templates.TemplateResponse(
-                "auth.html", {"request": request, "error": "Email already registered", "action": "signup"}
+                "signup.html", {"request": request, "error": "Email already registered"}
             )
         user_dict = {"username": username, "email": email, "password": password}
         user_collection.insert_one(user_dict)
         return RedirectResponse(url="/login", status_code=303)
     except Exception as e:
         return templates.TemplateResponse(
-            "auth.html", {"request": request, "error": f"An error occurred: {e}", "action": "signup"}
+            "signup.html", {"request": request, "error": f"An error occurred: {e}"}
         )
 
 @app.get("/login", response_class=HTMLResponse)
 def login_form(request: Request):
-    return templates.TemplateResponse("auth.html", {"request": request, "action": "login"})
+    return templates.TemplateResponse("login.html", {"request": request})
 
 @app.post("/login", response_class=HTMLResponse)
 def login_submit(
@@ -108,21 +84,17 @@ def login_submit(
         db_user = user_collection.find_one({"email": email})
         if not db_user:
             return templates.TemplateResponse(
-                "auth.html", {"request": request, "error": "Email not registered", "action": "login"}
+                "login.html", {"request": request, "error": "Email not registered"}
             )
         if db_user["password"] != password:
             return templates.TemplateResponse(
-                "auth.html", {"request": request, "error": "Incorrect password", "action": "login"}
+                "login.html", {"request": request, "error": "Incorrect password"}
             )
-        return RedirectResponse(url="/index.html", status_code=303)
+        return RedirectResponse(url="/chat", status_code=303)
     except Exception as e:
         return templates.TemplateResponse(
-            "auth.html", {"request": request, "error": f"An error occurred: {e}", "action": "login"}
+            "login.html", {"request": request, "error": f"An error occurred: {e}"}
         )
-
-@app.get("/index.html", response_class=HTMLResponse)
-def index_page(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
 
 # -------------------------------
 # Chat Page
