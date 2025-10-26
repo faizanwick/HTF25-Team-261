@@ -885,12 +885,18 @@ assistant.speak("Ready to help you code!")</textarea>
         let customShortcuts = [];
         let websocket = null;
         let apiBaseUrl = window.location.origin;
+        
+        // Continuous listening variables
+        let continuousListening = false;
+        let continuousRecognition = null;
+        let voiceInputActive = false;
 
         // Initialize connection with speech recognition
         function initConnection() {
             console.log('VoiceCode initialized');
-            addChatMessage('CodeWhisper', 'Voice recognition service ready! Click the microphone button to start speaking.');
+            addChatMessage('CodeWhisper', 'Voice recognition service ready! Say "open voice input" to start hands-free mode.');
             initializeSpeechRecognition();
+            startContinuousListening();
         }
 
         let recognition = null;
@@ -916,6 +922,12 @@ assistant.speak("Ready to help you code!")</textarea>
                     const command = event.results[0][0].transcript;
                     addChatMessage('You', command);
                     
+                    // Check for deactivation command
+                    if (command.toLowerCase().includes('close voice input')) {
+                        deactivateVoiceInput();
+                        return;
+                    }
+                    
                     // Check if this is a search command
                     if (command.toLowerCase().includes('search') || command.toLowerCase().includes('find')) {
                         performCodeSearch(command);
@@ -937,10 +949,153 @@ assistant.speak("Ready to help you code!")</textarea>
                 recognition.onend = function() {
                     isListening = false;
                     updateVoiceButton();
+                    
+                    // If voice input is active, restart listening
+                    if (voiceInputActive) {
+                        setTimeout(() => {
+                            if (recognition && !isListening) {
+                                recognition.start();
+                            }
+                        }, 500);
+                    }
                 };
             } else {
                 addChatMessage('CodeWhisper', 'Speech recognition not supported in this browser. Use the text commands instead.');
             }
+        }
+
+        function startContinuousListening() {
+            // Check if browser supports speech recognition
+            if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                continuousRecognition = new SpeechRecognition();
+                
+                continuousRecognition.continuous = true;
+                continuousRecognition.interimResults = true;
+                continuousRecognition.lang = 'en-US';
+
+                continuousRecognition.onstart = function() {
+                    continuousListening = true;
+                    console.log('Continuous listening started');
+                    addChatMessage('CodeWhisper', '🔊 Continuous listening active. Say "open voice input" to activate voice commands.');
+                };
+
+                continuousRecognition.onresult = function(event) {
+                    let finalTranscript = '';
+                    let interimTranscript = '';
+                    
+                    for (let i = event.resultIndex; i < event.results.length; i++) {
+                        const transcript = event.results[i][0].transcript;
+                        if (event.results[i].isFinal) {
+                            finalTranscript += transcript;
+                        } else {
+                            interimTranscript += transcript;
+                        }
+                    }
+                    
+                    // Check for activation command
+                    const fullTranscript = (finalTranscript + interimTranscript).toLowerCase();
+                    
+                    if (fullTranscript.includes('open voice input') && !voiceInputActive) {
+                        activateVoiceInput();
+                        return;
+                    }
+                    
+                    // If voice input is active, process commands
+                    if (voiceInputActive && finalTranscript.trim()) {
+                        processVoiceCommand(finalTranscript.trim());
+                    }
+                };
+
+                continuousRecognition.onerror = function(event) {
+                    console.error('Continuous speech recognition error:', event.error);
+                    if (event.error === 'not-allowed') {
+                        addChatMessage('CodeWhisper', 'Microphone access denied. Please allow microphone access for continuous listening.');
+                        continuousListening = false;
+                    } else if (event.error === 'no-speech') {
+                        // Restart continuous listening
+                        setTimeout(() => {
+                            if (continuousListening) {
+                                continuousRecognition.start();
+                            }
+                        }, 1000);
+                    }
+                };
+
+                continuousRecognition.onend = function() {
+                    // Restart continuous listening if it should be active
+                    if (continuousListening) {
+                        setTimeout(() => {
+                            continuousRecognition.start();
+                        }, 1000);
+                    }
+                };
+
+                // Start continuous listening
+                continuousRecognition.start();
+            } else {
+                addChatMessage('CodeWhisper', 'Speech recognition not supported in this browser.');
+            }
+        }
+
+        function activateVoiceInput() {
+            voiceInputActive = true;
+            addChatMessage('CodeWhisper', '🎤 Voice input activated! You can now give voice commands. Say "close voice input" to deactivate.');
+            
+            // Update UI to show voice input is active
+            updateVoiceInputStatus();
+            
+            // Stop continuous recognition temporarily
+            if (continuousRecognition) {
+                continuousRecognition.stop();
+            }
+            
+            // Start the main voice recognition
+            if (recognition && !isListening) {
+                recognition.start();
+            }
+        }
+
+        function deactivateVoiceInput() {
+            voiceInputActive = false;
+            addChatMessage('CodeWhisper', '🔇 Voice input deactivated. Say "open voice input" to reactivate.');
+            
+            // Update UI to show voice input is inactive
+            updateVoiceInputStatus();
+            
+            // Stop main recognition
+            if (recognition && isListening) {
+                recognition.stop();
+            }
+            
+            // Restart continuous listening
+            if (continuousListening && continuousRecognition) {
+                continuousRecognition.start();
+            }
+        }
+
+        function updateVoiceInputStatus() {
+            const statusElement = document.getElementById('speechStatus');
+            if (statusElement) {
+                if (voiceInputActive) {
+                    statusElement.textContent = '🎤 Voice input active - Give commands!';
+                    statusElement.className = 'text-xs text-green-400 mt-2 text-center';
+                } else {
+                    statusElement.textContent = 'Say "open voice input" to activate';
+                    statusElement.className = 'text-xs text-slate-400 mt-2 text-center';
+                }
+            }
+        }
+
+        function processVoiceCommand(command) {
+            // Check for deactivation command
+            if (command.toLowerCase().includes('close voice input')) {
+                deactivateVoiceInput();
+                return;
+            }
+            
+            // Process the command normally
+            executeCommand(command);
         }
 
         function startListening() {
@@ -960,18 +1115,24 @@ assistant.speak("Ready to help you code!")</textarea>
             const indicator = document.getElementById('voiceIndicator');
             const status = document.getElementById('speechStatus');
             
-            if (isListening) {
-                toggle.textContent = '🎤 LISTENING';
+            if (voiceInputActive) {
+                toggle.textContent = '🎤 ACTIVE';
                 toggle.className = 'bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg text-xs font-medium';
                 indicator.classList.remove('hidden');
-                status.textContent = '🎤 Listening... Speak now!';
+                status.textContent = '🎤 Voice input active - Give commands!';
                 status.className = 'text-xs text-green-400 mt-2 text-center';
-            } else {
-                toggle.textContent = '🎤 ON';
-                toggle.className = 'btn-primary px-4 py-2 rounded-lg text-xs font-medium hover-glow';
+            } else if (continuousListening) {
+                toggle.textContent = '🔊 LISTENING';
+                toggle.className = 'bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-xs font-medium';
                 indicator.classList.add('hidden');
-                status.textContent = 'Click microphone to start speaking';
-                status.className = 'text-xs text-slate-400 mt-2 text-center';
+                status.textContent = 'Say "open voice input" to activate';
+                status.className = 'text-xs text-blue-400 mt-2 text-center';
+            } else {
+                toggle.textContent = '🎤 OFF';
+                toggle.className = 'bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded-lg text-xs font-medium';
+                indicator.classList.add('hidden');
+                status.textContent = 'Voice recognition disabled';
+                status.className = 'text-xs text-gray-400 mt-2 text-center';
             }
         }
 
@@ -992,11 +1153,10 @@ assistant.speak("Ready to help you code!")</textarea>
                 return;
             }
 
-            if (isListening) {
-                stopListening();
-                addChatMessage('CodeWhisper', 'Voice recognition stopped.');
+            if (voiceInputActive) {
+                deactivateVoiceInput();
             } else {
-                startListening();
+                activateVoiceInput();
             }
         }
 
@@ -1091,9 +1251,17 @@ assistant.speak("Ready to help you code!")</textarea>
                 if (data.status === 'success') {
                     addChatMessage('VoiceCode', data.response);
                     
-                    // If code was generated, add it to the editor
-                    if (data.code_generated) {
+                    // Handle different action types
+                    if (data.action_type === 'code' && data.code_generated) {
                         addCodeToEditor(data.code_generated);
+                    } else if (data.action_type === 'navigation') {
+                        handleNavigationAction(data.action_data);
+                    } else if (data.action_type === 'feature') {
+                        handleFeatureAction(data.action_data);
+                    } else if (data.action_type === 'file') {
+                        handleFileAction(data.action_data);
+                    } else if (data.action_type === 'voice_control') {
+                        handleVoiceControlAction(data.action_data);
                     }
                 } else {
                     addChatMessage('CodeWhisper', 'Error processing command');
@@ -1101,6 +1269,113 @@ assistant.speak("Ready to help you code!")</textarea>
             } catch (error) {
                 console.error('Error executing command:', error);
                 addChatMessage('CodeWhisper', 'Error processing voice command');
+            }
+        }
+
+        function handleNavigationAction(actionData) {
+            const action = actionData.action;
+            
+            switch (action) {
+                case 'go_to_home':
+                    showLanding();
+                    break;
+                case 'go_to_ide':
+                    showIDE();
+                    break;
+                case 'toggle_menu':
+                    toggleHamburgerMenu();
+                    break;
+                case 'go_back':
+                    // Simple back functionality
+                    if (document.getElementById('ideInterface').classList.contains('hidden')) {
+                        showIDE();
+                    } else {
+                        showLanding();
+                    }
+                    break;
+                default:
+                    console.log('Unknown navigation action:', action);
+            }
+        }
+
+        function handleFeatureAction(actionData) {
+            const action = actionData.action;
+            
+            switch (action) {
+                case 'open_voice_search':
+                    startVoiceSearch();
+                    break;
+                case 'open_analytics':
+                    openAnalytics();
+                    break;
+                case 'start_debug':
+                    startAutoDebug();
+                    break;
+                case 'open_shortcuts':
+                    openVoiceShortcuts();
+                    break;
+                case 'explain_code':
+                    explainCode();
+                    break;
+                default:
+                    console.log('Unknown feature action:', action);
+            }
+        }
+
+        function handleVoiceControlAction(actionData) {
+            const action = actionData.action;
+            
+            switch (action) {
+                case 'activate_voice_input':
+                    activateVoiceInput();
+                    break;
+                case 'deactivate_voice_input':
+                    deactivateVoiceInput();
+                    break;
+                default:
+                    console.log('Unknown voice control action:', action);
+            }
+        }
+
+        async function createNewFileWithName(filename) {
+            try {
+                const response = await fetch(`${apiBaseUrl}/code/files`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        filename: filename,
+                        content: ''
+                    })
+                });
+                
+                if (response.ok) {
+                    openFile(filename);
+                    addChatMessage('CodeWhisper', `Created new file: ${filename}`);
+                } else {
+                    addChatMessage('CodeWhisper', `Error creating file: ${filename}`);
+                }
+            } catch (error) {
+                console.error('Error creating file:', error);
+                addChatMessage('CodeWhisper', `Error creating file: ${filename}`);
+            }
+        }
+
+        async function deleteFile(filename) {
+            try {
+                const response = await fetch(`${apiBaseUrl}/code/files/${filename}`, {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    addChatMessage('CodeWhisper', `Deleted file: ${filename}`);
+                } else {
+                    addChatMessage('CodeWhisper', `Error deleting file: ${filename}`);
+                }
+            } catch (error) {
+                console.error('Error deleting file:', error);
+                addChatMessage('CodeWhisper', `Error deleting file: ${filename}`);
             }
         }
 
