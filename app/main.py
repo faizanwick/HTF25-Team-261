@@ -69,7 +69,11 @@ MAX_MESSAGE_LENGTH = 500  # limit user input
 # -------------------------------
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request):
-    return RedirectResponse(url="/signup")
+    # Serve the main index.html file
+    template_path = os.path.join(template_dir, "index.html")
+    if os.path.exists(template_path):
+        return FileResponse(template_path)
+    return {"message": "Voice-Enabled Code Assistant API is running 🚀"}
 
 @app.get("/signup", response_class=HTMLResponse)
 def signup_form(request: Request):
@@ -115,7 +119,7 @@ def login_submit(
             return templates.TemplateResponse(
                 "login.html", {"request": request, "error": "Incorrect password"}
             )
-        return RedirectResponse(url="/chat", status_code=303)
+        return RedirectResponse(url="/", status_code=303)
     except Exception as e:
         return templates.TemplateResponse(
             "login.html", {"request": request, "error": f"An error occurred: {e}"}
@@ -165,7 +169,7 @@ def chat_response(request: Request, user_message: str = Form(...)):
     except Exception as e:
         return templates.TemplateResponse(
             "chat.html",
-            {"request": request, "error": f"Chat error: {e}"
+            {"request": request, "error": f"Chat error: {e}"}
         )
 
 # -------------------------------
