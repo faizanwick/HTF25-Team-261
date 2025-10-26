@@ -34,7 +34,6 @@ app.mount("/static", StaticFiles(directory=template_dir), name="static")
 @app.get("/health")
 def health_check():
     return {"status": "healthy", "message": "Voice-Enabled Code Assistant is running 🚀"}
-
 # -------------------------------
 # MongoDB Atlas Connection
 # -------------------------------
@@ -51,12 +50,12 @@ except errors.ConnectionFailure as e:
 # -------------------------------
 # Templates
 # -------------------------------
-templates = Jinja2Templates(directory="Template")
+templates = Jinja2Templates(directory="template")
 
 # -------------------------------
 # OpenRouter Configuration
 # -------------------------------
-OPENROUTER_API_KEY = "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"
+OPENROUTER_API_KEY = "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"
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 # -------------------------------
@@ -69,55 +68,56 @@ MAX_MESSAGE_LENGTH = 500  # limit user input
 # -------------------------------
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request):
-    # Serve the main index.html file
-    template_path = os.path.join(template_dir, "index.html")
-    if os.path.exists(template_path):
-        return FileResponse(template_path)
-    return {"message": "Voice-Enabled Code Assistant API is running 🚀"}
+    return RedirectResponse(url="/signup")
 
-@app.get("/auth", response_class=HTMLResponse)
-def auth_form(request: Request):
-    return templates.TemplateResponse("auth.html", {"request": request})
+@app.get("/signup", response_class=HTMLResponse)
+def signup_form(request: Request):
+    return templates.TemplateResponse("auth.html", {"request": request, "action": "signup"})
 
-@app.post("/auth", response_class=HTMLResponse)
-def auth_submit(
+@app.post("/signup", response_class=HTMLResponse)
+def signup_submit(
     request: Request,
-    action: str = Form(...),
+    username: str = Form(...),
     email: EmailStr = Form(...),
-    password: str = Form(...),
-    username: str = Form(None)
+    password: str = Form(...)
 ):
     try:
-        if action == "signup":
-            # Signup logic
-            if user_collection.find_one({"email": email}):
-                return templates.TemplateResponse(
-                    "auth.html", {"request": request, "error": "Email already registered"}
-                )
-            user_dict = {"username": username, "email": email, "password": password}
-            user_collection.insert_one(user_dict)
-            return RedirectResponse(url="/", status_code=303)
-        
-        elif action == "login":
-            # Login logic
-            db_user = user_collection.find_one({"email": email})
-            if not db_user:
-                return templates.TemplateResponse(
-                    "auth.html", {"request": request, "error": "Email not registered"}
-                )
-            if db_user["password"] != password:
-                return templates.TemplateResponse(
-                    "auth.html", {"request": request, "error": "Incorrect password"}
-                )
-            return RedirectResponse(url="/", status_code=303)
-        
-        else:
+        if user_collection.find_one({"email": email}):
             return templates.TemplateResponse(
-                "auth.html", {"request": request, "error": "Invalid action"}
+                "auth.html", {"request": request, "error": "Email already registered", "action": "signup"}
             )
+        user_dict = {"username": username, "email": email, "password": password}
+        user_collection.insert_one(user_dict)
+        return RedirectResponse(url="/login", status_code=303)
     except Exception as e:
         return templates.TemplateResponse(
-            "auth.html", {"request": request, "error": f"An error occurred: {e}"}
+            "auth.html", {"request": request, "error": f"An error occurred: {e}", "action": "signup"}
+        )
+
+@app.get("/login", response_class=HTMLResponse)
+def login_form(request: Request):
+    return templates.TemplateResponse("auth.html", {"request": request, "action": "login"})
+
+@app.post("/login", response_class=HTMLResponse)
+def login_submit(
+    request: Request,
+    email: EmailStr = Form(...),
+    password: str = Form(...)
+):
+    try:
+        db_user = user_collection.find_one({"email": email})
+        if not db_user:
+            return templates.TemplateResponse(
+                "auth.html", {"request": request, "error": "Email not registered", "action": "login"}
+            )
+        if db_user["password"] != password:
+            return templates.TemplateResponse(
+                "auth.html", {"request": request, "error": "Incorrect password", "action": "login"}
+            )
+        return RedirectResponse(url="/chat", status_code=303)
+    except Exception as e:
+        return templates.TemplateResponse(
+            "auth.html", {"request": request, "error": f"An error occurred: {e}", "action": "login"}
         )
 
 # -------------------------------

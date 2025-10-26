@@ -4,8 +4,8 @@
     <base target="_self">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CodeWhisper - Authentication</title>
-    <meta name="description" content="Modern authentication page with login and signup">
+    <title>Authentication | CodeWhisper</title>
+    <meta name="description" content="Modern authentication page with login and signup forms">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     <script>
@@ -64,10 +64,10 @@
             color: white;
         }
         .tab-inactive {
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.5);
             color: #6b7280;
         }
-        .hidden-form {
+        .form-hidden {
             display: none;
         }
     </style>
@@ -78,27 +78,29 @@
             <!-- Header -->
             <div class="text-center mb-8">
                 <div class="w-20 h-20 bg-gradient-to-r from-primary-500 to-secondary-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
-                    <i class="fas fa-code text-white text-2xl"></i>
+                    <i class="fas fa-user-shield text-white text-2xl"></i>
                 </div>
-                <h1 class="text-3xl font-bold text-gray-800 mb-2">CodeWhisper</h1>
-                <p class="text-gray-600">Voice-Enabled Code Assistant</p>
+                <h1 class="text-3xl font-bold text-gray-800 mb-2">Welcome to CodeWhisper</h1>
+                <p class="text-gray-600">Sign in or create your account</p>
             </div>
 
             <!-- Tab Navigation -->
             <div class="flex mb-6 bg-gray-100 rounded-lg p-1">
                 <button 
                     id="loginTab" 
-                    onclick="showLoginForm()" 
-                    class="flex-1 py-2 px-4 rounded-md font-medium transition-all tab-active"
+                    class="flex-1 py-2 px-4 rounded-md font-medium transition-all duration-300 tab-active"
+                    onclick="switchTab('login')"
                 >
-                    <i class="fas fa-sign-in-alt mr-2"></i>Login
+                    <i class="fas fa-sign-in-alt mr-2"></i>
+                    Sign In
                 </button>
                 <button 
                     id="signupTab" 
-                    onclick="showSignupForm()" 
-                    class="flex-1 py-2 px-4 rounded-md font-medium transition-all tab-inactive"
+                    class="flex-1 py-2 px-4 rounded-md font-medium transition-all duration-300 tab-inactive"
+                    onclick="switchTab('signup')"
                 >
-                    <i class="fas fa-user-plus mr-2"></i>Sign Up
+                    <i class="fas fa-user-plus mr-2"></i>
+                    Sign Up
                 </button>
             </div>
 
@@ -110,9 +112,7 @@
             {% endif %}
 
             <!-- Login Form -->
-            <form id="loginForm" method="post" action="/auth" class="space-y-6">
-                <input type="hidden" name="action" value="login">
-                
+            <form id="loginForm" method="post" action="/login" class="space-y-6">
                 <!-- Email Input -->
                 <div>
                     <label for="loginEmail" class="block text-sm font-medium text-gray-700 mb-2">
@@ -166,9 +166,7 @@
             </form>
 
             <!-- Signup Form -->
-            <form id="signupForm" method="post" action="/auth" class="space-y-6 hidden-form">
-                <input type="hidden" name="action" value="signup">
-                
+            <form id="signupForm" method="post" action="/signup" class="space-y-6 form-hidden">
                 <!-- Username Input -->
                 <div>
                     <label for="signupUsername" class="block text-sm font-medium text-gray-700 mb-2">
@@ -180,7 +178,6 @@
                         id="signupUsername" 
                         name="username"
                         required
-                        value="{{ username or '' }}"
                         class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-300"
                         placeholder="Enter your username"
                     >
@@ -197,7 +194,6 @@
                         id="signupEmail" 
                         name="email"
                         required
-                        value="{{ email or '' }}"
                         class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-300"
                         placeholder="Enter your email"
                     >
@@ -241,20 +237,32 @@
     </div>
 
     <script>
-        // Show login form by default
-        function showLoginForm() {
-            document.getElementById('loginForm').classList.remove('hidden-form');
-            document.getElementById('signupForm').classList.add('hidden-form');
-            document.getElementById('loginTab').className = 'flex-1 py-2 px-4 rounded-md font-medium transition-all tab-active';
-            document.getElementById('signupTab').className = 'flex-1 py-2 px-4 rounded-md font-medium transition-all tab-inactive';
-        }
+        // Tab switching functionality
+        function switchTab(tab) {
+            const loginTab = document.getElementById('loginTab');
+            const signupTab = document.getElementById('signupTab');
+            const loginForm = document.getElementById('loginForm');
+            const signupForm = document.getElementById('signupForm');
 
-        // Show signup form
-        function showSignupForm() {
-            document.getElementById('signupForm').classList.remove('hidden-form');
-            document.getElementById('loginForm').classList.add('hidden-form');
-            document.getElementById('signupTab').className = 'flex-1 py-2 px-4 rounded-md font-medium transition-all tab-active';
-            document.getElementById('loginTab').className = 'flex-1 py-2 px-4 rounded-md font-medium transition-all tab-inactive';
+            if (tab === 'login') {
+                // Switch to login
+                loginTab.classList.remove('tab-inactive');
+                loginTab.classList.add('tab-active');
+                signupTab.classList.remove('tab-active');
+                signupTab.classList.add('tab-inactive');
+                
+                loginForm.classList.remove('form-hidden');
+                signupForm.classList.add('form-hidden');
+            } else {
+                // Switch to signup
+                signupTab.classList.remove('tab-inactive');
+                signupTab.classList.add('tab-active');
+                loginTab.classList.remove('tab-active');
+                loginTab.classList.add('tab-inactive');
+                
+                signupForm.classList.remove('form-hidden');
+                loginForm.classList.add('form-hidden');
+            }
         }
 
         // Password visibility toggle for login
@@ -283,8 +291,14 @@
             }
         });
 
-        // Initialize with login form shown
-        showLoginForm();
+        // Check URL parameters to determine which tab to show
+        const urlParams = new URLSearchParams(window.location.search);
+        const action = urlParams.get('action');
+        if (action === 'signup') {
+            switchTab('signup');
+        } else {
+            switchTab('login');
+        }
     </script>
 </body>
 </html>
